@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+
+	<title>three.js example</title>
+
+	<meta charset="utf-8">
+
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+	<style>
+		body {
+
+			background-color: #000000;
+
+			/* To use the complete page */
+
+			margin: 0px;
+
+			overflow: hidden;
+		}
+
+		#buttonsBar {
+			position: fixed;
+			bottom: 24px;
+			left: 50%;
+			transform: translateX(-50%);
+			display: flex;
+			gap: 10px;
+			z-index: 999;
+		}
+        #gearBtn, #axesBtn, #lightsBtn, #nightLightBtn {
+			padding: 10px 28px;
+			background: #2a2a2a;
+			color: #ffffff;
+			border: 2px solid #888888;
+			border-radius: 6px;
+			font-size: 15px;
+			font-family: sans-serif;
+			cursor: pointer;
+			letter-spacing: 1px;
+		}
+        #gearBtn:hover, #axesBtn:hover, #lightsBtn:hover, #nightLightBtn:hover { background: #444444; }
+	</style>
+
+</head>
+
+<body>
+
+	<!-- Div which will hold the renderer output -->
+
+	<div id="WebGL-output"> </div>
+
+	<div id="buttonsBar">
+		<button id="gearBtn">&#9660; Retrair Rodas</button>
+		<button id="axesBtn">&#10005; Esconder Eixos</button>
+        <button id="lightsBtn">Desligar Luzes</button>
+        <button id="nightLightBtn">Luz Noite</button>
+	</div>
+
+	<!-- The library -->
+
+	<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+	<script type="importmap">
+		{
+    		"imports": {
+     			 "three": "https://threejs.org/build/three.module.js",
+                 "three/addons/": "https://threejs.org/examples/jsm/"
+    		}
+  		}
+	</script>
+
+	<!-- Javascript code that runs the Three.js example -->
+
+	<script type="module">
+
+		import * as THREE from 'three';
+
+        import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+		// Once everything is loaded, run this function
+
+		function init() {
+
+			// The SCENE
+
+			const scene = new THREE.Scene();
+
+            scene.background = new THREE.Color(0x000000);
+
+
+			// Add coordinate AXIS to the scene
+
+			const axes = new THREE.AxesHelper(20);
+
+			scene.add(axes);
+
+            // Grupo do avião
+            const airplaneGroup = new THREE.Group();
+            scene.add(airplaneGroup);
+
+            // Main
+            const boxGeometry = new THREE.CylinderGeometry(6, 3, 48, 4);
+            const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const box = new THREE.Mesh(boxGeometry, boxMaterial);
+            box.position.x = 0;
+            box.position.y = 13;
+            box.position.z = 0;
+            box.rotation.x = Math.PI / 2;
+            box.rotation.y = Math.PI / 4;
+            airplaneGroup.add(box);
+
+            // Cabinet box
+            const cabinetGeometry = new THREE.ConeGeometry(7, 28, 5);
+            const cabinetMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const cabinet = new THREE.Mesh(cabinetGeometry, cabinetMaterial);
+            cabinet.position.x = 0;
+            cabinet.position.y = 13;
+            cabinet.position.z = 39;
+            cabinet.rotation.x = Math.PI / 2;
+            airplaneGroup.add(cabinet);
+
+            // Cabinet box
+            const invertcabinetGeometry = new THREE.ConeGeometry(7, 22, 5);
+            const invertcabinetMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const invertcabinet = new THREE.Mesh(invertcabinetGeometry, invertcabinetMaterial);
+            invertcabinet.position.x = 0;
+            invertcabinet.position.y = 13;
+            invertcabinet.position.z = 14;
+            invertcabinet.rotation.x = Math.PI + Math.PI / 2;
+            invertcabinet.rotation.y = Math.PI / 5;
+            airplaneGroup.add(invertcabinet);
+
+            // Motor box
+            const motorGeometry = new THREE.BoxGeometry(18, 5, 44);
+            const motorMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const motor = new THREE.Mesh(motorGeometry, motorMaterial);
+            motor.position.x = 0;
+            motor.position.y = 12.4;
+            motor.position.z = -2;
+            airplaneGroup.add(motor);
+
+            // ASAS 
+
+            const asaMaterial = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                flatShading: true
+            });
+
+            function criarTrapezio(p1, p2, p3, p4) {
+                const thickness = 0.45;
+                const v1 = new THREE.Vector3(p1[0], p1[1], p1[2]);
+                const v2 = new THREE.Vector3(p2[0], p2[1], p2[2]);
+                const v3 = new THREE.Vector3(p3[0], p3[1], p3[2]);
+                const v4 = new THREE.Vector3(p4[0], p4[1], p4[2]);
+
+                const normal = new THREE.Vector3()
+                    .subVectors(v2, v1)
+                    .cross(new THREE.Vector3().subVectors(v3, v1))
+                    .normalize();
+                const offset = normal.multiplyScalar(thickness * 0.5);
+
+                const front1 = v1.clone().add(offset);
+                const front2 = v2.clone().add(offset);
+                const front3 = v3.clone().add(offset);
+                const front4 = v4.clone().add(offset);
+
+                const back1 = v1.clone().sub(offset);
+                const back2 = v2.clone().sub(offset);
+                const back3 = v3.clone().sub(offset);
+                const back4 = v4.clone().sub(offset);
+
+                const vertices = new Float32Array([
+                    front1.x, front1.y, front1.z,
+                    front2.x, front2.y, front2.z,
+                    front3.x, front3.y, front3.z,
+                    front4.x, front4.y, front4.z,
+                    back1.x, back1.y, back1.z,
+                    back2.x, back2.y, back2.z,
+                    back3.x, back3.y, back3.z,
+                    back4.x, back4.y, back4.z,
+                ]);
+
+                const indices = [
+                    0, 1, 2, 0, 2, 3,
+                    6, 5, 4, 7, 6, 4,
+                    0, 4, 5, 0, 5, 1,
+                    1, 5, 6, 1, 6, 2,
+                    2, 6, 7, 2, 7, 3,
+                    3, 7, 4, 3, 4, 0,
+                ];
+
+                const geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+                geo.setIndex(indices);
+                geo.computeVertexNormals();
+                return geo;
+            }
+
+            const asaprincipaldireitaGeo = criarTrapezio(
+                [ 0, 0,  17],   // ponto de frente da asa (dentro) 
+                [ 0, 0, -24],   // ponto de trás da asa (dentro)
+                [30, 0, -10],   // ponto de trás da asa (fora)
+                [30, 0,   -5]   // ponto de frente da asa (fora)
+            );
+            const asaDireita = new THREE.Mesh(asaprincipaldireitaGeo, asaMaterial);
+            asaDireita.position.set(0, 15, 0);
+            airplaneGroup.add(asaDireita);
+
+            const asaprincipalEsquerdaGeo = criarTrapezio(
+                [ 0, 0,  17],
+                [ 0, 0, -24],
+                [-30, 0, -10],
+                [-30, 0,   -5]
+            );
+            const asaEsquerda = new THREE.Mesh(asaprincipalEsquerdaGeo, asaMaterial);
+            asaEsquerda.position.set(0, 15, 0);
+            airplaneGroup.add(asaEsquerda);
+
+            // Luzes de navegação nas pontas das asas principais
+            const wingTipLightGeometry = new THREE.SphereGeometry(0.55, 16, 16);
+            const rightWingTipMaterial = new THREE.MeshStandardMaterial({
+                color: 0xaa4444,
+                emissive: 0xaa4444,
+                emissiveIntensity: 0.9,
+                transparent: true,
+                opacity: 0.55
+            });
+            const leftWingTipMaterial = new THREE.MeshStandardMaterial({
+                color: 0x448844,
+                emissive: 0x448844,
+                emissiveIntensity: 0.9,
+                transparent: true,
+                opacity: 0.55
+            });
+
+            // Luzes ligeiramente para fora da ponta para não ficarem dentro da espessura da asa
+            const rightWingTipMesh = new THREE.Mesh(wingTipLightGeometry, rightWingTipMaterial);
+            rightWingTipMesh.position.set(28, 15, -7.5);
+            airplaneGroup.add(rightWingTipMesh);
+
+            const leftWingTipMesh = new THREE.Mesh(wingTipLightGeometry, leftWingTipMaterial);
+            leftWingTipMesh.position.set(-28, 15, -7.5);
+            airplaneGroup.add(leftWingTipMesh);
+
+            // Duas fontes por ponta: uma em cima da asa e outra em baixo
+            const rightWingTipTopLight = new THREE.PointLight(0xff0000, 120, 35);
+            rightWingTipTopLight.position.set(28, 15.5, -7.5);
+            airplaneGroup.add(rightWingTipTopLight);
+
+            const rightWingTipBottomLight = new THREE.PointLight(0xff0000, 120, 35);
+            rightWingTipBottomLight.position.set(28, 14.5, -7.5);
+            airplaneGroup.add(rightWingTipBottomLight);
+
+            const leftWingTipTopLight = new THREE.PointLight(0x00ff00, 120, 35);
+            leftWingTipTopLight.position.set(-28, 15.5, -7.5);
+            airplaneGroup.add(leftWingTipTopLight);
+
+            const leftWingTipBottomLight = new THREE.PointLight(0x00ff00, 120, 35);
+            leftWingTipBottomLight.position.set(-28, 14.5, -7.5);
+            airplaneGroup.add(leftWingTipBottomLight);
+
+            let navLightsOn = true;
+            let navBlinkVisible = true;
+            let lastBlinkToggle = performance.now();
+
+            function setNavigationLightSources(visibleNow) {
+                rightWingTipTopLight.visible = visibleNow;
+                rightWingTipBottomLight.visible = visibleNow;
+                leftWingTipTopLight.visible = visibleNow;
+                leftWingTipBottomLight.visible = visibleNow;
+            }
+
+            function refreshNavigationLights() {
+                setNavigationLightSources(navLightsOn && navBlinkVisible);
+            }
+
+            refreshNavigationLights();
+
+            // pequenas asas à frente - também trapézios
+            const canardDireitoGeo = criarTrapezio(
+                [ 0, 0, 17],
+                [ 0, 0,  0],
+                [10, 0,  -10],
+                [10, 0,  4]
+            );
+            const canardDireito = new THREE.Mesh(canardDireitoGeo, asaMaterial);
+            canardDireito.position.set(0, 15, 15);
+            airplaneGroup.add(canardDireito);
+
+            const canardEsquerdoGeo = criarTrapezio(
+                [ 0, 0, 17],
+                [ 0, 0,  0],
+                [-10, 0, -10],
+                [-10, 0, 4]
+            );
+            const canardEsquerdo = new THREE.Mesh(canardEsquerdoGeo, asaMaterial);
+            canardEsquerdo.position.set(0, 15, 15);
+            airplaneGroup.add(canardEsquerdo);
+
+            // Vertical Stabilizer - também trapézio
+            const verticalStabilizerEsquerdaGeo = criarTrapezio(
+                [ 0, 0, -22],
+                [ 0, 0, -39],
+                [8, 9, -34],
+                [8, 9,  -26]
+            );
+            const verticalStabilizerEsquerda = new THREE.Mesh(verticalStabilizerEsquerdaGeo, asaMaterial);
+            verticalStabilizerEsquerda.position.set(6, 15, 15);
+            airplaneGroup.add(verticalStabilizerEsquerda);
+
+            const verticalStabilizerDireitaGeo = criarTrapezio(
+                [ 0, 0, -22],
+                [ 0, 0, -39],
+                [-8, 9, -34],
+                [-8, 9, -26]
+            );
+            const verticalStabilizerDireita = new THREE.Mesh(verticalStabilizerDireitaGeo, asaMaterial);
+            verticalStabilizerDireita.position.set(-6, 15, 15);
+            airplaneGroup.add(verticalStabilizerDireita);
+
+            // Horizontal Stabilizer - também trapézio
+            const horizontalStabilizerEsquerdaGeo = criarTrapezio(
+                [ 0, 0, -25],
+                [ 0, 0, -46],
+                [6, 0, -48],
+                [12, 0, -40]
+            );
+
+            const horizontalStabilizerEsquerda = new THREE.Mesh(horizontalStabilizerEsquerdaGeo, asaMaterial);
+            horizontalStabilizerEsquerda.position.set(2, 15, 15);
+            airplaneGroup.add(horizontalStabilizerEsquerda);
+
+            const horizontalStabilizerDireitaGeo = criarTrapezio(
+                [ 0, 0, -25],
+                [ 0, 0, -46],
+                [-6, 0, -48],
+                [-12, 0, -40]
+            );  
+
+            const horizontalStabilizerDireita = new THREE.Mesh(horizontalStabilizerDireitaGeo, asaMaterial);
+            horizontalStabilizerDireita.position.set(-2, 15, 15);
+            airplaneGroup.add(horizontalStabilizerDireita);
+
+            // Turbina
+            const turbinaEsquerdaGeo = new THREE.CylinderGeometry(2, 3, 16, 32);
+            const turbinaMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const turbina = new THREE.Mesh(turbinaEsquerdaGeo, turbinaMaterial);    
+            turbina.position.x = 4;
+            turbina.position.y = 12;
+            turbina.position.z = -20;
+            turbina.rotation.x = Math.PI / 2;
+            airplaneGroup.add(turbina);
+
+            const turbinaDireitaGeo = new THREE.CylinderGeometry(2, 3, 16, 32);
+            const turbinaDireita = new THREE.Mesh(turbinaDireitaGeo, turbinaMaterial);    
+            turbinaDireita.position.x = -4;      
+            turbinaDireita.position.y = 12;
+            turbinaDireita.position.z = -20;
+            turbinaDireita.rotation.x = Math.PI / 2;
+            airplaneGroup.add(turbinaDireita);
+
+            // Cockpit
+            const cockpitGeo = new THREE.CapsuleGeometry(4, 4.5, 3, 8);
+            const cockpitMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, transparent: true, opacity: 0.7 });
+            const cockpit = new THREE.Mesh(cockpitGeo, cockpitMaterial);
+            cockpit.position.x = 0;
+            cockpit.position.y = 15;    
+            cockpit.position.z = 29.8;
+            cockpit.rotation.x = Math.PI / 2 + Math.PI / 10;
+            airplaneGroup.add(cockpit);
+
+            // --- Rodas de pouso com grupos pivot para animação ---
+            const rodaPousoGeo = new THREE.CylinderGeometry(2, 2, 2, 32);
+            const rodaPousoMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const eixoRodaGeo = new THREE.CylinderGeometry(0.5, 0.5, 8, 32);
+            const eixoRodaMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+            // Roda da frente: pivot no topo do eixo (junto à fuselagem)
+            const frontGearPivot = new THREE.Group();
+            frontGearPivot.position.set(0, 10, 15);
+            const eixoFrente = new THREE.Mesh(eixoRodaGeo, eixoRodaMaterial);
+            eixoFrente.position.set(0, -4, 0);
+            const rodaFrente = new THREE.Mesh(rodaPousoGeo, rodaPousoMaterial);
+            rodaFrente.position.set(0, -8, 0);
+            rodaFrente.rotation.z = Math.PI / 2;
+            frontGearPivot.add(eixoFrente);
+            frontGearPivot.add(rodaFrente);
+            airplaneGroup.add(frontGearPivot);
+
+            // Roda traseira direita: pivot no topo do eixo
+            const rightGearPivot = new THREE.Group();
+            rightGearPivot.position.set(-8, 10, -10);
+            const eixoDireita = new THREE.Mesh(eixoRodaGeo, eixoRodaMaterial);
+            eixoDireita.position.set(1, -4, 0);
+            const rodaDireita = new THREE.Mesh(rodaPousoGeo, rodaPousoMaterial);
+            rodaDireita.position.set(0, -8, 0);
+            rodaDireita.rotation.z = Math.PI / 2;
+            rightGearPivot.add(eixoDireita);
+            rightGearPivot.add(rodaDireita);
+            airplaneGroup.add(rightGearPivot);
+
+            // Roda traseira esquerda: pivot no topo do eixo
+            const leftGearPivot = new THREE.Group();
+            leftGearPivot.position.set(8, 10, -10);
+            const eixoEsquerda = new THREE.Mesh(eixoRodaGeo, eixoRodaMaterial);
+            eixoEsquerda.position.set(-1, -4, 0);
+            const rodaEsquerda = new THREE.Mesh(rodaPousoGeo, rodaPousoMaterial);
+            rodaEsquerda.position.set(0, -8, 0);
+            rodaEsquerda.rotation.z = Math.PI / 2;
+            leftGearPivot.add(eixoEsquerda);
+            leftGearPivot.add(rodaEsquerda);
+            airplaneGroup.add(leftGearPivot);
+
+            // Estado da animação das rodas
+            let gearRetracted = false;
+            let gearAnimating = false;
+            let gearProgress = 0; // 0 = fora, 1 = recolhidas
+            const GEAR_SPEED = 0.008;
+
+            function updateGearRotations() {
+                // Frente: roda vai 90° para trás (rotação em X positivo)
+                frontGearPivot.rotation.x = gearProgress * Math.PI / 2;
+                // Traseiras: vão 90° para o centro (rotação em Z)
+                rightGearPivot.rotation.z =  gearProgress * Math.PI / 2;  // direita → +Z fica voltada para +X (centro)
+                leftGearPivot.rotation.z  = -gearProgress * Math.PI / 2;  // esquerda → -Z fica voltada para -X (centro)
+            }
+
+            document.getElementById('gearBtn').addEventListener('click', () => {
+                if (gearAnimating) return;
+                gearRetracted = !gearRetracted;
+                gearAnimating = true;
+                document.getElementById('gearBtn').textContent =
+                    gearRetracted ? '&#9660; Baixar Rodas' : '&#9650; Retrair Rodas';
+                document.getElementById('gearBtn').innerHTML =
+                    gearRetracted ? '&#9660; Baixar Rodas' : '&#9650; Retrair Rodas';
+            });
+
+            document.getElementById('axesBtn').addEventListener('click', () => {
+                axes.visible = !axes.visible;
+                document.getElementById('axesBtn').innerHTML =
+                    axes.visible ? '&#10005; Esconder Eixos' : '&#10010; Mostrar Eixos';
+            });
+
+            document.getElementById('lightsBtn').addEventListener('click', () => {
+                navLightsOn = !navLightsOn;
+                navBlinkVisible = true;
+                lastBlinkToggle = performance.now();
+                refreshNavigationLights();
+                document.getElementById('lightsBtn').innerHTML =
+                    navLightsOn ? 'Desligar Luzes' : 'Ligar Luzes';
+            });
+
+            document.getElementById('nightLightBtn').addEventListener('click', () => {
+                nightModeActive = !nightModeActive;
+                setNightMode(nightModeActive);
+                document.getElementById('nightLightBtn').innerHTML =
+                    nightModeActive ? ' Luz Normal' : 'Luz Noite';
+            });
+
+            // Aplicar sombra após todas as peças do avião existirem
+            airplaneGroup.traverse((object) => {
+                if (object.isMesh) {
+                    object.castShadow = true;
+                    object.receiveShadow = true;
+                }
+            });
+
+			// The CAMERA
+
+			// --- Where the viewer is and how he is looking at the scene
+
+			const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+			// Position the camera
+
+			camera.position.x = -90;
+			camera.position.y = 90;
+			camera.position.z = 90;
+
+			// Point the camera to the center of the scene
+
+			camera.lookAt(scene.position);
+
+			scene.add(camera)
+
+            const spotLight = new THREE.SpotLight( 0xffffff, 50000);
+			spotLight.position.set(-40, 60, -10);
+            spotLight.angle = Math.PI / 3;
+            spotLight.penumbra = 0.25;
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 4096;
+            spotLight.shadow.mapSize.height = 4096;
+            spotLight.shadow.camera.near = 10;
+            spotLight.shadow.camera.far = 320;
+            spotLight.shadow.bias = -0.0002;
+            spotLight.shadow.normalBias = 0.006;
+            const spotLightTarget = new THREE.Object3D();
+            spotLightTarget.position.set(0, 12, -8);
+            scene.add(spotLightTarget);
+            spotLight.target = spotLightTarget;
+
+			scene.add( spotLight );
+
+            const ambientLight = new THREE.AmbientLight( 0x404040, 100 ); 
+            scene.add( ambientLight );
+
+
+            const cameraLight = new THREE.PointLight(0xffffff, 30000, 3000);
+            camera.add(cameraLight);
+
+            // Guardar intensidades originais para modo noturno
+            const originalSpotLightIntensity = 50000;
+            const originalAmbientLightIntensity = 100;
+            const originalCameraLightIntensity = 30000;
+
+            let nightModeActive = false;
+
+            function setNightMode(active) {
+                if (active) {
+                    spotLight.intensity = originalSpotLightIntensity * 0.05;   // muito baixa
+                    spotLight.castShadow = false;
+                    ambientLight.intensity = originalAmbientLightIntensity * 0.08;   // muito baixa
+                    cameraLight.intensity = originalCameraLightIntensity * 0.05;     // muito baixa
+                } else {
+                    spotLight.intensity = originalSpotLightIntensity;
+                    spotLight.castShadow = true;
+                    ambientLight.intensity = originalAmbientLightIntensity;
+                    cameraLight.intensity = originalCameraLightIntensity;
+                }
+            }
+
+
+			// The RENDERER --- To display the scene on the Web page
+
+			const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+			renderer.setClearColor(new THREE.Color(0x000000));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+			renderer.setPixelRatio(window.devicePixelRatio);
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+
+			// Add the output of the renderer to the html element
+
+			document.getElementById("WebGL-output").appendChild(renderer.domElement);
+
+			// Render the scene
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+
+			function renderScene() {
+				requestAnimationFrame(renderScene);
+				controls.update();
+
+                // Pisca das luzes: 1 segundo ligadas, 1 segundo desligadas
+                if (navLightsOn) {
+                    const now = performance.now();
+                    if (now - lastBlinkToggle >= 1000) {
+                        navBlinkVisible = !navBlinkVisible;
+                        lastBlinkToggle = now;
+                        refreshNavigationLights();
+                    }
+                }
+
+				// Animação das rodas
+				if (gearAnimating) {
+					if (gearRetracted) {
+						gearProgress = Math.min(1, gearProgress + GEAR_SPEED);
+						if (gearProgress >= 1) gearAnimating = false;
+					} else {
+						gearProgress = Math.max(0, gearProgress - GEAR_SPEED);
+						if (gearProgress <= 0) gearAnimating = false;
+					}
+					updateGearRotations();
+				}
+
+				renderer.render(scene, camera);
+			}
+
+			renderScene();
+		}
+
+		window.onload = init
+
+	</script>
+
+</body>
+
+</html>
