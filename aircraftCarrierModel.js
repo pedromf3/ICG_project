@@ -266,25 +266,25 @@ export function buildCarrierModel(textureLoader) {
 	}
 
 	const heliHLeftGeometry = new THREE.BoxGeometry(1, 1.2, 14);
-	const heliMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+	const heliMaterial = new THREE.MeshPhongMaterial({ color: 0x999999 });
 	const heliHLeft = new THREE.Mesh(heliHLeftGeometry, heliMaterial);
 	heliHLeft.position.set(-56, -8, 100);
 	carrierGroup.add(heliHLeft);
 
 	const heliHRightGeometry = new THREE.BoxGeometry(1, 1.2, 14);
-	const heliHRightMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+	const heliHRightMaterial = new THREE.MeshPhongMaterial({ color: 0x999999 });
 	const heliHRight = new THREE.Mesh(heliHRightGeometry, heliHRightMaterial);
 	heliHRight.position.set(-44, -8, 100);
 	carrierGroup.add(heliHRight);
 
 	const heliHMiddleGeometry = new THREE.BoxGeometry(12, 1.2, 1);
-	const heliHMiddleMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+	const heliHMiddleMaterial = new THREE.MeshPhongMaterial({ color: 0x999999 });
 	const heliHMiddle = new THREE.Mesh(heliHMiddleGeometry, heliHMiddleMaterial);
 	heliHMiddle.position.set(-50, -8, 100);
 	carrierGroup.add(heliHMiddle);
 
 	const heliCircleGeometry = new THREE.RingGeometry(10.5, 12, 64);
-	const heliCircleMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+	const heliCircleMaterial = new THREE.MeshPhongMaterial({ color: 0x999999, side: THREE.DoubleSide });
 	const heliCircle = new THREE.Mesh(heliCircleGeometry, heliCircleMaterial);
 	heliCircle.position.set(-50, -7.35, 100);
 	heliCircle.rotation.x = -Math.PI / 2;

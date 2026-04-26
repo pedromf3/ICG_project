@@ -1,198 +1,298 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ICG - Unified Scenario</title>
-<style>
-body {
-margin: 0;
-overflow: hidden;
-background: #000000;
-font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-}
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ICG - Unified Scenario</title>
+        <style>
+            body {
+            margin: 0;
+            overflow: hidden;
+            background: #000000;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            }
 
-#WebGL-output {
-width: 100vw;
-height: 100vh;
-}
+            #WebGL-output {
+            width: 100vw;
+            height: 100vh;
+            }
 
-#overlay {
-position: fixed;
-top: 14px;
-left: 14px;
-padding: 8px 12px;
-background: rgba(0, 0, 0, 0.45);
-color: #f2f2f2;
-font-size: 13px;
-letter-spacing: 0.4px;
-border: 1px solid rgba(255, 255, 255, 0.2);
-border-radius: 6px;
-pointer-events: none;
-}
-</style>
-</head>
-<body>
-<div id="WebGL-output"></div>
+            #overlay {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.45);
+            color: #f2f2f2;
+            font-size: 13px;
+            letter-spacing: 0.4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            pointer-events: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="WebGL-output"></div>
 
-<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+        <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
 
-<script type="importmap">
-{
-"imports": {
-"three": "https://threejs.org/build/three.module.js",
-"three/addons/": "https://threejs.org/examples/jsm/"
-}
-}
-</script>
+        <script type="importmap">
+        {
+        "imports": {
+            "three": "https://threejs.org/build/three.module.js",
+            "three/addons/": "https://threejs.org/examples/jsm/"
+            }
+        }
+        </script>
 
-<script type="module">
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { buildCarrierModel } from "./aircraftCarrierModel.js";
-import { buildF22Model } from "./f22Model.js";
-import { buildUH1YModel } from "./uh-1yModel.js";
+        <script type="module">
+            import * as THREE from "three";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+            import { buildCarrierModel } from "./aircraftCarrierModel.js";
+            import { buildF22Model } from "./f22Model.js";
+            import { buildUH1YModel } from "./uh-1yModel.js";
 
-function disableModelArtificialLights(root) {
-root.traverse((object) => {
-if (object.isLight) {
-object.visible = false;
-return;
-}
+            const DAY_DURATION_MS = 3 * 60 * 1000;
+            const NIGHT_DURATION_MS = 3 * 60 * 1000;
+            const FULL_CYCLE_MS = DAY_DURATION_MS + NIGHT_DURATION_MS;
 
-if (!object.isMesh || !object.material) {
-return;
-}
+            function disableModelArtificialLights(root) {
+                root.traverse((object) => {
+                    if (object.isLight) {
+                        object.visible = false;
+                        return;
+                    }
 
-const materials = Array.isArray(object.material) ? object.material : [object.material];
-for (const material of materials) {
-if (material && "emissiveIntensity" in material) {
-material.emissiveIntensity = 0;
-}
-}
-});
-}
+                    if (!object.isMesh || !object.material) {
+                        return;
+                    }
 
-function init() {
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x9fd6f5, 900, 3200);
+                    const materials = Array.isArray(object.material) ? object.material : [object.material];
+                    for (const material of materials) {
+                        if (material && "emissiveIntensity" in material) {
+                        material.emissiveIntensity = 0;
+                        }
+                    }
+                });
+            }
 
-const oceanGeometry = new THREE.PlaneGeometry(2600, 2600, 1, 1);
-const oceanMaterial = new THREE.MeshPhongMaterial({
-color: 0x0d2337,
-specular: 0x284a66,
-shininess: 35,
-side: THREE.DoubleSide
-});
-const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
-ocean.rotation.x = -Math.PI / 2;
-ocean.position.y = -44;
-ocean.receiveShadow = true;
-scene.add(ocean);
+            function init() {
+            const scene = new THREE.Scene();
+            const daySkyColor = new THREE.Color(0x87ceeb);
+            const sunsetSkyColor = new THREE.Color(0xf08f55);
+            const nightSkyColor = new THREE.Color(0x061321);
+            const dayFogColor = new THREE.Color(0x9fd6f5);
+            const nightFogColor = new THREE.Color(0x0c1b2b);
+            const dayOceanColor = new THREE.Color(0x0d2337);
+            const nightOceanColor = new THREE.Color(0x050d17);
+            const dayOceanSpecular = new THREE.Color(0x0f1d2b);
+            const nightOceanSpecular = new THREE.Color(0x050b12);
+            const sunVisualDayColor = new THREE.Color(0xffd200);
+            const sunVisualSunsetColor = new THREE.Color(0xffc247);
+            const sunLightColor = new THREE.Color(0xffefb0);
+            const WATER_LEVEL_Y = -44;
+            const SUN_VISUAL_RADIUS = 42;
+            const MIN_CAMERA_Y = WATER_LEVEL_Y + 2;
+            const SUN_LIGHT_DISTANCE = 1700;
+            const SUN_BEAM_DISTANCE = 760;
+            const SUN_VISUAL_DISTANCE = 4200;
+            const SHADOW_MAP_SIZE = 4096;
+            const SHADOW_FRUSTUM_HALF_SIZE = 360;
 
-const textureLoader = new THREE.TextureLoader();
-const { carrierGroup, radarSpinner } = buildCarrierModel(textureLoader);
-scene.add(carrierGroup);
+            scene.background = daySkyColor.clone();
+            scene.fog = new THREE.Fog(dayFogColor.clone(), 900, 3200);
 
-const airplaneGroup = buildF22Model();
-airplaneGroup.scale.setScalar(0.38);
-const runwayAngle = Math.PI / 9.5;
-const runwayCenterX = 17.5;
-const runwayCenterZ = -2.5;
-const runwayDirectionX = Math.sin(runwayAngle);
-const runwayDirectionZ = Math.cos(runwayAngle);
-const fighterDistanceFromCenter = -27;
-airplaneGroup.position.set(
-runwayCenterX + runwayDirectionX * fighterDistanceFromCenter,
--8.0,
-runwayCenterZ + runwayDirectionZ * fighterDistanceFromCenter
-);
-airplaneGroup.rotation.y = runwayAngle;
-carrierGroup.add(airplaneGroup);
+            const oceanGeometry = new THREE.PlaneGeometry(2600, 2600, 1, 1);
+            const oceanMaterial = new THREE.MeshPhongMaterial({
+            color: dayOceanColor,
+            specular: dayOceanSpecular,
+            shininess: 4,
+            side: THREE.FrontSide
+            });
+            const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
+            ocean.rotation.x = -Math.PI / 2;
+            ocean.position.y = WATER_LEVEL_Y;
+            ocean.receiveShadow = true;
+            scene.add(ocean);
 
-const { helicopterGroup } = buildUH1YModel();
-helicopterGroup.scale.setScalar(0.3);
-helicopterGroup.position.set(-50, -9.1, 100);
-carrierGroup.add(helicopterGroup);
+            const textureLoader = new THREE.TextureLoader();
+            const { carrierGroup, radarSpinner } = buildCarrierModel(textureLoader);
+            scene.add(carrierGroup);
 
-disableModelArtificialLights(carrierGroup);
-disableModelArtificialLights(airplaneGroup);
-disableModelArtificialLights(helicopterGroup);
+            const airplaneGroup = buildF22Model();
+            airplaneGroup.scale.setScalar(0.38);
+            const runwayAngle = Math.PI / 9.5;
+            const runwayCenterX = 17.5;
+            const runwayCenterZ = -2.5;
+            const runwayDirectionX = Math.sin(runwayAngle);
+            const runwayDirectionZ = Math.cos(runwayAngle);
+            const fighterDistanceFromCenter = -27;
+            airplaneGroup.position.set(
+            runwayCenterX + runwayDirectionX * fighterDistanceFromCenter,
+            -8.0,
+            runwayCenterZ + runwayDirectionZ * fighterDistanceFromCenter
+            );
+            airplaneGroup.rotation.y = runwayAngle;
+            carrierGroup.add(airplaneGroup);
 
-const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 5000);
-camera.position.set(-380, 240, 520);
-camera.lookAt(0, -20, 0);
-scene.add(camera);
+            const { helicopterGroup } = buildUH1YModel();
+            helicopterGroup.scale.setScalar(0.3);
+            helicopterGroup.position.set(-50, -9.1, 100);
+            carrierGroup.add(helicopterGroup);
 
-const sunLight = new THREE.DirectionalLight(0xfff2c6, 7.5);
-sunLight.position.set(700, 900, 380);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 4096;
-sunLight.shadow.mapSize.height = 4096;
-sunLight.shadow.camera.near = 10;
-sunLight.shadow.camera.far = 2600;
-sunLight.shadow.camera.left = -700;
-sunLight.shadow.camera.right = 700;
-sunLight.shadow.camera.top = 700;
-sunLight.shadow.camera.bottom = -700;
-sunLight.shadow.bias = -0.00008;
-sunLight.shadow.normalBias = 0.02;
+            disableModelArtificialLights(carrierGroup);
+            disableModelArtificialLights(airplaneGroup);
+            disableModelArtificialLights(helicopterGroup);
 
-const sunTarget = new THREE.Object3D();
-sunTarget.position.set(0, -20, 0);
-scene.add(sunTarget);
-sunLight.target = sunTarget;
-scene.add(sunLight);
+            const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 5000);
+            camera.position.set(-380, 240, 520);
+            camera.lookAt(0, -20, 0);
+            scene.add(camera);
 
-const sunVisual = new THREE.Mesh(
-new THREE.SphereGeometry(42, 32, 32),
-new THREE.MeshBasicMaterial({ color: 0xffd27a })
-);
-sunVisual.position.copy(sunLight.position);
-scene.add(sunVisual);
+            const sunLight = new THREE.DirectionalLight(0xfff2c6, 7.5);
+            sunLight.position.set(700, 900, 380);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = SHADOW_MAP_SIZE;
+            sunLight.shadow.mapSize.height = SHADOW_MAP_SIZE;
+            sunLight.shadow.camera.near = 40;
+            sunLight.shadow.camera.far = 1900;
+            sunLight.shadow.camera.left = -SHADOW_FRUSTUM_HALF_SIZE;
+            sunLight.shadow.camera.right = SHADOW_FRUSTUM_HALF_SIZE;
+            sunLight.shadow.camera.top = SHADOW_FRUSTUM_HALF_SIZE;
+            sunLight.shadow.camera.bottom = -SHADOW_FRUSTUM_HALF_SIZE;
+            sunLight.shadow.bias = -0.0002;
+            sunLight.shadow.normalBias = 0.08;
+            sunLight.shadow.radius = 2;
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
-scene.add(ambientLight);
+            const sunTarget = new THREE.Object3D();
+            sunTarget.position.set(0, -20, 0);
+            scene.add(sunTarget);
+            sunLight.target = sunTarget;
+            scene.add(sunLight);
 
-const hemisphere = new THREE.HemisphereLight(0x7fb2ff, 0x0a1622, 0.55);
-scene.add(hemisphere);
+            const sunBeamLight = new THREE.SpotLight(0xffd980, 0.9, 2600, Math.PI / 2.08, 1, 1);
+            sunBeamLight.position.copy(sunLight.position);
+            sunBeamLight.castShadow = false;
+            sunBeamLight.target = sunTarget;
+            scene.add(sunBeamLight);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setClearColor(new THREE.Color(0x87ceeb));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
+            const sunVisual = new THREE.Mesh(
+            new THREE.SphereGeometry(SUN_VISUAL_RADIUS, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xffd200, fog: false })
+            );
+            sunVisual.position.copy(sunLight.position);
+            scene.add(sunVisual);
 
-document.getElementById("WebGL-output").appendChild(renderer.domElement);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+            scene.add(ambientLight);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.maxDistance = 1400;
-controls.minDistance = 120;
-controls.target.set(0, -18, 0);
+            const hemisphere = new THREE.HemisphereLight(0x7fb2ff, 0x0a1622, 0.55);
+            scene.add(hemisphere);
 
-function onWindowResize() {
-camera.aspect = window.innerWidth / window.innerHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(window.innerWidth, window.innerHeight);
-}
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setClearColor(new THREE.Color(0x87ceeb));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
 
-window.addEventListener("resize", onWindowResize);
+            document.getElementById("WebGL-output").appendChild(renderer.domElement);
 
-function renderScene() {
-requestAnimationFrame(renderScene);
-controls.update();
-radarSpinner.rotation.y += 0.01;
-renderer.render(scene, camera);
-}
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 1400;
+            controls.minDistance = 120;
+            controls.maxPolarAngle = Math.PI / 2;
+            controls.target.set(0, -18, 0);
 
-renderScene();
-}
+            const sunOrbitRadiusX = 1100;
+            const sunOrbitRadiusY = 900;
+            const sunOrbitZ = 380;
+            const horizonY = WATER_LEVEL_Y + SUN_VISUAL_RADIUS + 10;
+            const cycleClock = new THREE.Clock();
+            const workingSkyColor = new THREE.Color();
+            const workingFogColor = new THREE.Color();
+            const workingOceanColor = new THREE.Color();
+            const workingOceanSpecular = new THREE.Color();
+            const workingSunVisualColor = new THREE.Color();
+            const sunDirection = new THREE.Vector3();
 
-window.onload = init;
-</script>
-</body>
+            function updateDayNightCycle(elapsedMs) {
+            const cycleProgress = (elapsedMs % FULL_CYCLE_MS) / FULL_CYCLE_MS;
+            const orbitAngle = cycleProgress * Math.PI * 2;
+            const sunHeight = Math.sin(orbitAngle);
+            const daylight = THREE.MathUtils.clamp((sunHeight + 0.06) / 1.06, 0, 1);
+            const twilight = THREE.MathUtils.smoothstep(sunHeight, -0.25, 0.35);
+            const dayMix = THREE.MathUtils.smoothstep(sunHeight, 0.05, 0.85);
+            const sunOrbitalX = Math.cos(orbitAngle) * sunOrbitRadiusX;
+            const sunOrbitalY = horizonY + sunHeight * sunOrbitRadiusY;
+            const sunOrbitalZ = sunOrbitZ;
+
+            sunDirection.set(
+            sunOrbitalX - sunTarget.position.x,
+            sunOrbitalY - sunTarget.position.y,
+            sunOrbitalZ - sunTarget.position.z
+            ).normalize();
+
+            sunLight.position.copy(sunTarget.position).addScaledVector(sunDirection, SUN_LIGHT_DISTANCE);
+            sunBeamLight.position.copy(sunTarget.position).addScaledVector(sunDirection, SUN_BEAM_DISTANCE);
+            sunVisual.position.copy(camera.position).addScaledVector(sunDirection, SUN_VISUAL_DISTANCE);
+
+            workingSunVisualColor.lerpColors(sunVisualSunsetColor, sunVisualDayColor, dayMix);
+            sunVisual.material.color.copy(workingSunVisualColor);
+            sunLight.color.copy(sunLightColor);
+
+            sunLight.intensity = THREE.MathUtils.lerp(0.12, 7.5, daylight);
+            sunBeamLight.intensity = THREE.MathUtils.lerp(0.0, 0.9, daylight * twilight);
+            sunBeamLight.angle = THREE.MathUtils.lerp(Math.PI / 2.45, Math.PI / 2.02, 1 - dayMix);
+            ambientLight.intensity = THREE.MathUtils.lerp(0.08, 0.55, twilight);
+            hemisphere.intensity = THREE.MathUtils.lerp(0.1, 0.55, twilight);
+
+            workingSkyColor.lerpColors(nightSkyColor, sunsetSkyColor, twilight);
+            workingSkyColor.lerp(daySkyColor, dayMix);
+            scene.background.copy(workingSkyColor);
+
+            workingFogColor.lerpColors(nightFogColor, dayFogColor, twilight);
+            scene.fog.color.copy(workingFogColor);
+
+            workingOceanColor.lerpColors(nightOceanColor, dayOceanColor, twilight);
+            oceanMaterial.color.copy(workingOceanColor);
+
+            workingOceanSpecular.lerpColors(nightOceanSpecular, dayOceanSpecular, twilight);
+            oceanMaterial.specular.copy(workingOceanSpecular);
+
+            sunVisual.visible = sunOrbitalY - SUN_VISUAL_RADIUS > WATER_LEVEL_Y;
+            }
+
+            function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            window.addEventListener("resize", onWindowResize);
+
+            function renderScene() {
+            requestAnimationFrame(renderScene);
+            if (controls.target.y < MIN_CAMERA_Y) {
+            controls.target.y = MIN_CAMERA_Y;
+            }
+            controls.update();
+            if (camera.position.y < MIN_CAMERA_Y) {
+            camera.position.y = MIN_CAMERA_Y;
+            }
+            radarSpinner.rotation.y += 0.01;
+            updateDayNightCycle(cycleClock.getElapsedTime() * 1000);
+            renderer.render(scene, camera);
+            }
+
+            updateDayNightCycle(0);
+            renderScene();
+            }
+
+            window.onload = init;
+        </script>
+    </body>
 </html>
