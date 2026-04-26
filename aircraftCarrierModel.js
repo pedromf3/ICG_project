@@ -224,12 +224,20 @@ export function buildCarrierModel(textureLoader) {
 	const whiteRunwayLightMaterial = new THREE.MeshStandardMaterial({
 		color: 0xffffff,
 		emissive: 0xffffff,
-		emissiveIntensity: 0.8
+		emissiveIntensity: 0.8,
+		roughness: 0.2,
+		metalness: 0.0,
+		transparent: true,
+		opacity: 0.55
 	});
 	const redRunwayLightMaterial = new THREE.MeshStandardMaterial({
 		color: 0xff4444,
 		emissive: 0xff0000,
-		emissiveIntensity: 0.8
+		emissiveIntensity: 0.8,
+		roughness: 0.2,
+		metalness: 0.0,
+		transparent: true,
+		opacity: 0.55
 	});
 	const runwayEdgeLightColors = [0xffffff, 0xff0000];
 	const runwayEdgeLineAngle = Math.PI / 9.5;

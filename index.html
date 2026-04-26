@@ -30,9 +30,56 @@
             border-radius: 6px;
             pointer-events: none;
             }
+
+            #controlButtons {
+            position: fixed;
+            left: 14px;
+            bottom: 14px;
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            max-width: calc(100vw - 28px);
+            }
+
+            .hudButton {
+            padding: 9px 12px;
+            color: #f1f1f1;
+            background: rgba(8, 12, 18, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            border-radius: 7px;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            }
+
+            .hudButton:hover {
+            background: rgba(18, 28, 41, 0.9);
+            }
+
+            #viewModeHelp {
+            position: fixed;
+            bottom: 62px;
+            left: 14px;
+            z-index: 10;
+            padding: 7px 10px;
+            color: #d4e0ec;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 6px;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+            display: none;
+            }
         </style>
     </head>
     <body>
+        <div id="controlButtons">
+            <button id="viewToggleButton" type="button" class="hudButton">Visao: Orbital</button>
+            <button id="setDayNowButton" type="button" class="hudButton">Dia Agora</button>
+            <button id="setNightNowButton" type="button" class="hudButton">Noite Agora</button>
+        </div>
+        <div id="viewModeHelp">WASD para andar</div>
         <div id="WebGL-output"></div>
 
         <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
@@ -49,6 +96,7 @@
         <script type="module">
             import * as THREE from "three";
             import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+            import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
             import { buildCarrierModel } from "./aircraftCarrierModel.js";
             import { buildF22Model } from "./f22Model.js";
             import { buildUH1YModel } from "./uh-1yModel.js";
@@ -120,21 +168,51 @@
             const { carrierGroup, radarSpinner } = buildCarrierModel(textureLoader);
             scene.add(carrierGroup);
 
-            const airplaneGroup = buildF22Model();
-            airplaneGroup.scale.setScalar(0.38);
             const runwayAngle = Math.PI / 9.5;
             const runwayCenterX = 17.5;
             const runwayCenterZ = -2.5;
             const runwayDirectionX = Math.sin(runwayAngle);
             const runwayDirectionZ = Math.cos(runwayAngle);
+
+            function addCarrierFighter({ x, z, heading, scale = 0.38 }) {
+            const fighterGroup = buildF22Model();
+            fighterGroup.scale.setScalar(scale);
+            fighterGroup.position.set(x, -8.0, z);
+            fighterGroup.rotation.y = heading;
+            carrierGroup.add(fighterGroup);
+            disableModelArtificialLights(fighterGroup);
+            return fighterGroup;
+            }
+
             const fighterDistanceFromCenter = -27;
-            airplaneGroup.position.set(
-            runwayCenterX + runwayDirectionX * fighterDistanceFromCenter,
-            -8.0,
-            runwayCenterZ + runwayDirectionZ * fighterDistanceFromCenter
-            );
-            airplaneGroup.rotation.y = runwayAngle;
-            carrierGroup.add(airplaneGroup);
+            addCarrierFighter({
+            x: runwayCenterX + runwayDirectionX * fighterDistanceFromCenter,
+            z: runwayCenterZ + runwayDirectionZ * fighterDistanceFromCenter,
+            heading: runwayAngle,
+            scale: 0.38
+            });
+
+            const parkedFighterSlots = [
+            { x: 35, z: -120, heading: runwayAngle + Math.PI + 2.5 },
+            { x: 20, z: -155,  heading: runwayAngle + Math.PI + 2.5 },
+            { x: -50, z: -20, heading: runwayAngle + Math.PI - 2.3 },
+            { x: -50, z: 5,  heading: runwayAngle + Math.PI - 2.3 },
+            { x: -50, z: 30, heading: runwayAngle + Math.PI - 2.3},
+            { x: -50, z: 55, heading: runwayAngle + Math.PI - 2.3 },
+            { x: -5, z: 80, heading: runwayAngle + Math.PI - 2.6 },
+            { x: -5, z: 105, heading: runwayAngle + Math.PI - 2.6 },
+            { x: 0, z: 130, heading: runwayAngle + Math.PI - 2.6 },
+            { x: 0, z: 155, heading: runwayAngle + Math.PI - 2.6 }
+            ];
+
+            for (const slot of parkedFighterSlots) {
+            addCarrierFighter({
+                x: slot.x,
+                z: slot.z,
+                heading: slot.heading,
+                scale: 0.36
+            });
+            }
 
             const { helicopterGroup } = buildUH1YModel();
             helicopterGroup.scale.setScalar(0.3);
@@ -142,7 +220,6 @@
             carrierGroup.add(helicopterGroup);
 
             disableModelArtificialLights(carrierGroup);
-            disableModelArtificialLights(airplaneGroup);
             disableModelArtificialLights(helicopterGroup);
 
             const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 5000);
@@ -207,11 +284,223 @@
             controls.maxPolarAngle = Math.PI / 2;
             controls.target.set(0, -18, 0);
 
+            const firstPersonControls = new PointerLockControls(camera, renderer.domElement);
+            const viewToggleButton = document.getElementById("viewToggleButton");
+            const setDayNowButton = document.getElementById("setDayNowButton");
+            const setNightNowButton = document.getElementById("setNightNowButton");
+            const viewModeHelp = document.getElementById("viewModeHelp");
+            const keyState = {
+            KeyW: false,
+            KeyA: false,
+            KeyS: false,
+            KeyD: false
+            };
+            const firstPersonMoveVector = new THREE.Vector3();
+            const firstPersonSpawn = new THREE.Vector3(
+            runwayCenterX + runwayDirectionX * 12,
+            -6.2,
+            runwayCenterZ + runwayDirectionZ * 12
+            );
+            const firstPersonLookPoint = new THREE.Vector3(
+            firstPersonSpawn.x + runwayDirectionX * 30,
+            firstPersonSpawn.y,
+            firstPersonSpawn.z + runwayDirectionZ * 30
+            );
+            const orbitSavedPosition = new THREE.Vector3();
+            const orbitSavedTarget = new THREE.Vector3();
+            const firstPersonBounds = {
+            minX: -70,
+            maxX: 55,
+            minZ: -180,
+            maxZ: 180
+            };
+            const FIRST_PERSON_MASS_DENSITY = 1;
+            const FIRST_PERSON_MIN_BLOCKING_MASS = 600;
+            const FIRST_PERSON_TOWER_COLLISION_PADDING = 2.5;
+            const FIRST_PERSON_RADAR_BASE_COLLISION_PADDING = 2;
+            const firstPersonObstacleRects = [
+            createFirstPersonObstacleRect({
+                centerX: -55,
+                centerZ: -60,
+                width: 18,
+                depth: 28,
+                height: 30,
+                padding: FIRST_PERSON_TOWER_COLLISION_PADDING
+            }),
+            createFirstPersonObstacleRect({
+                centerX: -55,
+                centerZ: -90,
+                width: 8,
+                depth: 8,
+                height: 30,
+                padding: FIRST_PERSON_RADAR_BASE_COLLISION_PADDING
+            })
+            ];
+            const FIRST_PERSON_BASE_SPEED = 40;
+            const FIRST_PERSON_EYE_Y = firstPersonSpawn.y;
+
+            let hasSavedOrbitPose = false;
+            let isFirstPersonMode = false;
+
+            function clampFirstPersonPosition() {
+            camera.position.x = THREE.MathUtils.clamp(camera.position.x, firstPersonBounds.minX, firstPersonBounds.maxX);
+            camera.position.z = THREE.MathUtils.clamp(camera.position.z, firstPersonBounds.minZ, firstPersonBounds.maxZ);
+            camera.position.y = FIRST_PERSON_EYE_Y;
+            }
+
+            function createFirstPersonObstacleRect({ centerX, centerZ, width, depth, height, padding = 0 }) {
+            const expandedWidth = width + padding * 2;
+            const expandedDepth = depth + padding * 2;
+
+            return {
+                minX: centerX - expandedWidth / 2,
+                maxX: centerX + expandedWidth / 2,
+                minZ: centerZ - expandedDepth / 2,
+                maxZ: centerZ + expandedDepth / 2,
+                mass: expandedWidth * expandedDepth * height * FIRST_PERSON_MASS_DENSITY
+            };
+            }
+
+            function isFirstPersonPositionBlocked(x, z) {
+            for (const obstacle of firstPersonObstacleRects) {
+                if (
+                obstacle.mass >= FIRST_PERSON_MIN_BLOCKING_MASS &&
+                x >= obstacle.minX &&
+                x <= obstacle.maxX &&
+                z >= obstacle.minZ &&
+                z <= obstacle.maxZ
+                ) {
+                return true;
+                }
+            }
+
+            return false;
+            }
+
+            function resolveFirstPersonObstacleCollision(previousX, previousZ) {
+            if (!isFirstPersonPositionBlocked(camera.position.x, camera.position.z)) {
+                return;
+            }
+
+            const canKeepNewX = !isFirstPersonPositionBlocked(camera.position.x, previousZ);
+            const canKeepNewZ = !isFirstPersonPositionBlocked(previousX, camera.position.z);
+
+            if (canKeepNewX) {
+                camera.position.z = previousZ;
+                return;
+            }
+
+            if (canKeepNewZ) {
+                camera.position.x = previousX;
+                return;
+            }
+
+            camera.position.x = previousX;
+            camera.position.z = previousZ;
+            }
+
+            function setViewMode(useFirstPerson) {
+            if (useFirstPerson === isFirstPersonMode) {
+                return;
+            }
+
+            isFirstPersonMode = useFirstPerson;
+
+            if (isFirstPersonMode) {
+                orbitSavedPosition.copy(camera.position);
+                orbitSavedTarget.copy(controls.target);
+                hasSavedOrbitPose = true;
+
+                controls.enabled = false;
+                camera.position.copy(firstPersonSpawn);
+                camera.lookAt(firstPersonLookPoint);
+                clampFirstPersonPosition();
+
+                viewToggleButton.textContent = "Visao: Primeira Pessoa";
+                viewModeHelp.style.display = "block";
+                firstPersonControls.lock();
+                return;
+            }
+
+            firstPersonControls.unlock();
+            controls.enabled = true;
+
+            if (hasSavedOrbitPose) {
+                camera.position.copy(orbitSavedPosition);
+                controls.target.copy(orbitSavedTarget);
+            }
+
+            viewToggleButton.textContent = "Visao: Orbital";
+            viewModeHelp.style.display = "none";
+            controls.update();
+            }
+
+            function updateFirstPersonMovement(deltaSeconds) {
+            const forwardInput = (keyState.KeyW ? 1 : 0) - (keyState.KeyS ? 1 : 0);
+            const rightInput = (keyState.KeyD ? 1 : 0) - (keyState.KeyA ? 1 : 0);
+            const previousX = camera.position.x;
+            const previousZ = camera.position.z;
+
+            firstPersonMoveVector.set(rightInput, 0, forwardInput);
+
+            if (firstPersonMoveVector.lengthSq() < 0.0001) {
+                clampFirstPersonPosition();
+                return;
+            }
+
+            firstPersonMoveVector.normalize();
+
+            const movementSpeed = FIRST_PERSON_BASE_SPEED * deltaSeconds;
+            firstPersonControls.moveRight(firstPersonMoveVector.x * movementSpeed);
+            firstPersonControls.moveForward(firstPersonMoveVector.z * movementSpeed);
+
+            clampFirstPersonPosition();
+            resolveFirstPersonObstacleCollision(previousX, previousZ);
+            clampFirstPersonPosition();
+            }
+
+            viewToggleButton.addEventListener("click", () => {
+            setViewMode(!isFirstPersonMode);
+            });
+
+            setDayNowButton.addEventListener("click", () => {
+            setCycleToProgress(0.25);
+            });
+
+            setNightNowButton.addEventListener("click", () => {
+            setCycleToProgress(0.75);
+            });
+
+            renderer.domElement.addEventListener("click", () => {
+            if (isFirstPersonMode && !firstPersonControls.isLocked) {
+                firstPersonControls.lock();
+            }
+            });
+
+            window.addEventListener("keydown", (event) => {
+            if (event.code === "Space" && !event.repeat) {
+                event.preventDefault();
+                setViewMode(!isFirstPersonMode);
+                return;
+            }
+
+            if (event.code in keyState) {
+                keyState[event.code] = true;
+            }
+            });
+
+            window.addEventListener("keyup", (event) => {
+            if (event.code in keyState) {
+                keyState[event.code] = false;
+            }
+            });
+
             const sunOrbitRadiusX = 1100;
             const sunOrbitRadiusY = 900;
             const sunOrbitZ = 380;
             const horizonY = WATER_LEVEL_Y + SUN_VISUAL_RADIUS + 10;
             const cycleClock = new THREE.Clock();
+            let cycleTimeOffsetMs = 0;
             const workingSkyColor = new THREE.Color();
             const workingFogColor = new THREE.Color();
             const workingOceanColor = new THREE.Color();
@@ -219,8 +508,20 @@
             const workingSunVisualColor = new THREE.Color();
             const sunDirection = new THREE.Vector3();
 
+            function getEffectiveCycleElapsedMs() {
+            return cycleClock.elapsedTime * 1000 + cycleTimeOffsetMs;
+            }
+
+            function setCycleToProgress(targetProgress) {
+            const normalizedProgress = ((targetProgress % 1) + 1) % 1;
+            const targetCycleElapsedMs = normalizedProgress * FULL_CYCLE_MS;
+            cycleTimeOffsetMs = targetCycleElapsedMs - cycleClock.elapsedTime * 1000;
+            updateDayNightCycle(getEffectiveCycleElapsedMs());
+            }
+
             function updateDayNightCycle(elapsedMs) {
-            const cycleProgress = (elapsedMs % FULL_CYCLE_MS) / FULL_CYCLE_MS;
+            const cycleElapsedMs = ((elapsedMs % FULL_CYCLE_MS) + FULL_CYCLE_MS) % FULL_CYCLE_MS;
+            const cycleProgress = cycleElapsedMs / FULL_CYCLE_MS;
             const orbitAngle = cycleProgress * Math.PI * 2;
             const sunHeight = Math.sin(orbitAngle);
             const daylight = THREE.MathUtils.clamp((sunHeight + 0.06) / 1.06, 0, 1);
@@ -276,19 +577,26 @@
 
             function renderScene() {
             requestAnimationFrame(renderScene);
+            const frameDeltaSeconds = cycleClock.getDelta();
+
+            if (isFirstPersonMode) {
+            updateFirstPersonMovement(frameDeltaSeconds);
+            } else {
             if (controls.target.y < MIN_CAMERA_Y) {
-            controls.target.y = MIN_CAMERA_Y;
+                controls.target.y = MIN_CAMERA_Y;
             }
             controls.update();
             if (camera.position.y < MIN_CAMERA_Y) {
-            camera.position.y = MIN_CAMERA_Y;
+                camera.position.y = MIN_CAMERA_Y;
             }
+            }
+
             radarSpinner.rotation.y += 0.01;
-            updateDayNightCycle(cycleClock.getElapsedTime() * 1000);
+            updateDayNightCycle(getEffectiveCycleElapsedMs());
             renderer.render(scene, camera);
             }
 
-            updateDayNightCycle(0);
+            updateDayNightCycle(getEffectiveCycleElapsedMs());
             renderScene();
             }
 
