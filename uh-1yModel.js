@@ -197,11 +197,11 @@ export function buildUH1YModel() {
 	tailNavLightMesh.position.set(-2.5, 23, -58);
 	helicopterGroup.add(tailNavLightMesh);
 
-	const tailNavLight = new THREE.PointLight(0xff0000, 180, 42);
+	const tailNavLight = new THREE.PointLight(0xff0000, 45, 42);
 	tailNavLight.position.set(-2.8, 23, -58);
 	helicopterGroup.add(tailNavLight);
 
-	const frontHeadLight = new THREE.SpotLight(0xffffff, 11000, 220, Math.PI / 4, 0.55, 1.4);
+	const frontHeadLight = new THREE.SpotLight(0xffffff, 28, 220, Math.PI / 4, 0.55, 1.4);
 	frontHeadLight.position.set(0, 14, 24.5);
 	const frontHeadLightTarget = new THREE.Object3D();
 	frontHeadLightTarget.position.set(0, 14, 70);
@@ -222,21 +222,21 @@ export function buildUH1YModel() {
 	frontSpotLensLeft.position.copy(frontHeadLight.position);
 	helicopterGroup.add(frontSpotLensLeft);
 
-	let navLightsOn = true;
-	let navBlinkVisible = true;
-
-	function setNavigationLightSources(visibleNow) {
+	function setNavigationLightSources(activeFactor) {
+		const visibleNow = activeFactor > 0.01;
 		tailNavLight.visible = visibleNow;
-		tailNavLightMaterial.emissiveIntensity = visibleNow ? 0.95 : 0.2;
-		frontHeadLight.visible = navLightsOn;
-		frontSpotLensLeft.material.emissiveIntensity = navLightsOn ? 0.9 : 0.15;
+		tailNavLight.intensity = 45 * activeFactor;
+		tailNavLightMaterial.emissiveIntensity = 0.95 * activeFactor;
+		frontHeadLight.visible = visibleNow;
+		frontHeadLight.intensity = 28 * activeFactor;
+		frontSpotLensLeft.material.emissiveIntensity = 0.9 * activeFactor;
 	}
 
-	function refreshNavigationLights() {
-		setNavigationLightSources(navLightsOn && navBlinkVisible);
+	function refreshNavigationLights(activeFactor) {
+		setNavigationLightSources(THREE.MathUtils.clamp(activeFactor, 0, 1));
 	}
 
-	refreshNavigationLights();
+	refreshNavigationLights(0);
 
 	helicopterGroup.traverse((object) => {
 		if (object.isMesh) {
@@ -248,6 +248,7 @@ export function buildUH1YModel() {
 	return {
 		helicopterGroup,
 		helicesGroup,
-		backHelicesGroup
+		backHelicesGroup,
+		setHelicopterLightState: refreshNavigationLights
 	};
 }

@@ -78,6 +78,9 @@
             <button id="viewToggleButton" type="button" class="hudButton">Visao: Orbital</button>
             <button id="setDayNowButton" type="button" class="hudButton">Dia Agora</button>
             <button id="setNightNowButton" type="button" class="hudButton">Noite Agora</button>
+            <button id="togglePerimeterButton" type="button" class="hudButton">Perimetro: Oculto</button>
+            <button id="toggleFighterLightsButton" type="button" class="hudButton">Caças: Luzes ON</button>
+            <button id="toggleHeliLightsButton" type="button" class="hudButton">Heli: Luzes ON</button>
         </div>
         <div id="viewModeHelp">WASD para andar</div>
         <div id="WebGL-output"></div>
@@ -128,7 +131,7 @@
             function init() {
             const scene = new THREE.Scene();
             const daySkyColor = new THREE.Color(0x87ceeb);
-            const sunsetSkyColor = new THREE.Color(0xf08f55);
+            const sunsetSkyColor = new THREE.Color(0xe98a52);
             const nightSkyColor = new THREE.Color(0x061321);
             const dayFogColor = new THREE.Color(0x9fd6f5);
             const nightFogColor = new THREE.Color(0x0c1b2b);
@@ -165,7 +168,7 @@
             scene.add(ocean);
 
             const textureLoader = new THREE.TextureLoader();
-            const { carrierGroup, radarSpinner } = buildCarrierModel(textureLoader);
+            const { carrierGroup, radarSpinner, setCarrierLightState } = buildCarrierModel(textureLoader);
             scene.add(carrierGroup);
 
             const runwayAngle = Math.PI / 9.5;
@@ -174,13 +177,17 @@
             const runwayDirectionX = Math.sin(runwayAngle);
             const runwayDirectionZ = Math.cos(runwayAngle);
 
+            const fighterLightSetters = [];
+
             function addCarrierFighter({ x, z, heading, scale = 0.38 }) {
-            const fighterGroup = buildF22Model();
+            const { airplaneGroup: fighterGroup, setFighterLightState } = buildF22Model();
             fighterGroup.scale.setScalar(scale);
             fighterGroup.position.set(x, -8.0, z);
             fighterGroup.rotation.y = heading;
             carrierGroup.add(fighterGroup);
-            disableModelArtificialLights(fighterGroup);
+            if (typeof setFighterLightState === 'function') {
+                fighterLightSetters.push(setFighterLightState);
+            }
             return fighterGroup;
             }
 
@@ -214,7 +221,7 @@
             });
             }
 
-            const { helicopterGroup } = buildUH1YModel();
+            const { helicopterGroup, setHelicopterLightState } = buildUH1YModel();
             helicopterGroup.scale.setScalar(0.3);
             helicopterGroup.position.set(-50, -9.1, 100);
             carrierGroup.add(helicopterGroup);
@@ -288,7 +295,23 @@
             const viewToggleButton = document.getElementById("viewToggleButton");
             const setDayNowButton = document.getElementById("setDayNowButton");
             const setNightNowButton = document.getElementById("setNightNowButton");
+            const togglePerimeterButton = document.getElementById("togglePerimeterButton");
+            const toggleFighterLightsButton = document.getElementById("toggleFighterLightsButton");
+            const toggleHeliLightsButton = document.getElementById("toggleHeliLightsButton");
             const viewModeHelp = document.getElementById("viewModeHelp");
+
+            let fighterLightsEnabled = true;
+            let helicopterLightsEnabled = true;
+
+            toggleFighterLightsButton.addEventListener("click", () => {
+            fighterLightsEnabled = !fighterLightsEnabled;
+            toggleFighterLightsButton.textContent = fighterLightsEnabled ? "Caças: Luzes ON" : "Caças: Luzes OFF";
+            });
+
+            toggleHeliLightsButton.addEventListener("click", () => {
+            helicopterLightsEnabled = !helicopterLightsEnabled;
+            toggleHeliLightsButton.textContent = helicopterLightsEnabled ? "Heli: Luzes ON" : "Heli: Luzes OFF";
+            });
             const keyState = {
             KeyW: false,
             KeyA: false,
@@ -308,12 +331,44 @@
             );
             const orbitSavedPosition = new THREE.Vector3();
             const orbitSavedTarget = new THREE.Vector3();
-            const firstPersonBounds = {
-            minX: -70,
-            maxX: 55,
-            minZ: -180,
-            maxZ: 180
-            };
+            const firstPersonWalkablePerimeter = [
+            [-37.5, 10, 185],
+            [37.5, 10, 185],
+            [37.5, 10, 140],
+            [90, 10, 120],
+            [50, 10, 0],
+            [50, 10, -140],
+            [37.5, 10, -140],
+            [37.5, 10, -185],
+            [-37.5, 10, -185],
+            [-37.5, 10, -140],
+            [-72.5, 10, -140],
+            [-72.5, 10, 130],
+            [-37.5, 10, 130]
+            ];
+
+            const firstPersonWalkablePolygon = firstPersonWalkablePerimeter.map(([x, , z]) => [x, z]);
+
+            function pointInPolygon(x, z, polygon) {
+            let inside = false;
+
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i][0];
+                const zi = polygon[i][1];
+                const xj = polygon[j][0];
+                const zj = polygon[j][1];
+
+                const crossesEdge = (zi > z) !== (zj > z);
+                if (crossesEdge) {
+                const edgeX = ((xj - xi) * (z - zi)) / (zj - zi) + xi;
+                if (x < edgeX) {
+                    inside = !inside;
+                }
+                }
+            }
+
+            return inside;
+            }
             const FIRST_PERSON_MASS_DENSITY = 1;
             const FIRST_PERSON_MIN_BLOCKING_MASS = 600;
             const FIRST_PERSON_TOWER_COLLISION_PADDING = 2.5;
@@ -339,12 +394,19 @@
             const FIRST_PERSON_BASE_SPEED = 40;
             const FIRST_PERSON_EYE_Y = firstPersonSpawn.y;
 
+            const walkableBoundaryPoints = firstPersonWalkablePerimeter.map(([x, y, z]) => new THREE.Vector3(x, y, z));
+            const walkableBoundaryGeometry = new THREE.BufferGeometry().setFromPoints(
+            walkableBoundaryPoints.concat([walkableBoundaryPoints[0]])
+            );
+            const walkableBoundaryMaterial = new THREE.LineBasicMaterial({ color: 0xff3b30 });
+            const walkableBoundaryLine = new THREE.Line(walkableBoundaryGeometry, walkableBoundaryMaterial);
+            walkableBoundaryLine.visible = false;
+            scene.add(walkableBoundaryLine);
+
             let hasSavedOrbitPose = false;
             let isFirstPersonMode = false;
 
             function clampFirstPersonPosition() {
-            camera.position.x = THREE.MathUtils.clamp(camera.position.x, firstPersonBounds.minX, firstPersonBounds.maxX);
-            camera.position.z = THREE.MathUtils.clamp(camera.position.z, firstPersonBounds.minZ, firstPersonBounds.maxZ);
             camera.position.y = FIRST_PERSON_EYE_Y;
             }
 
@@ -379,6 +441,10 @@
 
             function resolveFirstPersonObstacleCollision(previousX, previousZ) {
             if (!isFirstPersonPositionBlocked(camera.position.x, camera.position.z)) {
+                if (!pointInPolygon(camera.position.x, camera.position.z, firstPersonWalkablePolygon)) {
+                camera.position.x = previousX;
+                camera.position.z = previousZ;
+                }
                 return;
             }
 
@@ -397,6 +463,11 @@
 
             camera.position.x = previousX;
             camera.position.z = previousZ;
+
+            if (!pointInPolygon(camera.position.x, camera.position.z, firstPersonWalkablePolygon)) {
+                camera.position.x = previousX;
+                camera.position.z = previousZ;
+            }
             }
 
             function setViewMode(useFirstPerson) {
@@ -471,6 +542,11 @@
             setCycleToProgress(0.75);
             });
 
+            togglePerimeterButton.addEventListener("click", () => {
+            walkableBoundaryLine.visible = !walkableBoundaryLine.visible;
+            togglePerimeterButton.textContent = walkableBoundaryLine.visible ? "Perimetro: Visivel" : "Perimetro: Oculto";
+            });
+
             renderer.domElement.addEventListener("click", () => {
             if (isFirstPersonMode && !firstPersonControls.isLocked) {
                 firstPersonControls.lock();
@@ -525,8 +601,9 @@
             const orbitAngle = cycleProgress * Math.PI * 2;
             const sunHeight = Math.sin(orbitAngle);
             const daylight = THREE.MathUtils.clamp((sunHeight + 0.06) / 1.06, 0, 1);
-            const twilight = THREE.MathUtils.smoothstep(sunHeight, -0.25, 0.35);
-            const dayMix = THREE.MathUtils.smoothstep(sunHeight, 0.05, 0.85);
+            const nightFactor = THREE.MathUtils.clamp(1 - daylight, 0, 1);
+            const twilight = THREE.MathUtils.smoothstep(sunHeight, -0.16, 0.24);
+            const dayMix = THREE.MathUtils.smoothstep(sunHeight, -0.08, 0.72);
             const sunOrbitalX = Math.cos(orbitAngle) * sunOrbitRadiusX;
             const sunOrbitalY = horizonY + sunHeight * sunOrbitRadiusY;
             const sunOrbitalZ = sunOrbitZ;
@@ -563,6 +640,31 @@
 
             workingOceanSpecular.lerpColors(nightOceanSpecular, dayOceanSpecular, twilight);
             oceanMaterial.specular.copy(workingOceanSpecular);
+
+            if (setCarrierLightState) {
+            const adjustedNightFactor = THREE.MathUtils.clamp((nightFactor - 0.65) * 2.86, 0, 1);
+            const deckBlinkVisible = adjustedNightFactor > 0.05 && Math.sin(cycleElapsedMs / 260) > 0;
+            const heliBlinkVisible = adjustedNightFactor > 0.05 && Math.sin(cycleElapsedMs / 420) > 0;
+            const effectiveHeliBlink = helicopterLightsEnabled ? heliBlinkVisible : false;
+            const effectiveHeliFactor = helicopterLightsEnabled ? adjustedNightFactor : 0;
+            setCarrierLightState(adjustedNightFactor, deckBlinkVisible, effectiveHeliBlink);
+            if (setHelicopterLightState) setHelicopterLightState(effectiveHeliFactor);
+            }
+
+            // Re-apply fighter lights each frame (fighters are children of carrierGroup which
+            // was globally disabled earlier). This ensures fighter nav lights follow night state.
+            if (typeof fighterLightSetters !== 'undefined' && fighterLightSetters.length > 0) {
+            const adjustedNightFactor = THREE.MathUtils.clamp((nightFactor - 0.65) * 2.86, 0, 1);
+            const fighterAF = fighterLightsEnabled ? adjustedNightFactor : 0;
+            const fighterBlinkVisible = fighterLightsEnabled ? (adjustedNightFactor > 0.05 && Math.sin(cycleElapsedMs / 260) > 0) : false;
+            for (const fn of fighterLightSetters) {
+                try {
+                fn(fighterAF, fighterBlinkVisible);
+                } catch (e) {
+                // ignore per-fighter errors
+                }
+            }
+            }
 
             sunVisual.visible = sunOrbitalY - SUN_VISUAL_RADIUS > WATER_LEVEL_Y;
             }

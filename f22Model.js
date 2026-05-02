@@ -119,14 +119,14 @@ export function buildF22Model() {
 	const rightWingTipMaterial = new THREE.MeshStandardMaterial({
 		color: 0xaa4444,
 		emissive: 0xaa4444,
-		emissiveIntensity: 0.9,
+		emissiveIntensity: 0.25,
 		transparent: true,
 		opacity: 0.55
 	});
 	const leftWingTipMaterial = new THREE.MeshStandardMaterial({
 		color: 0x448844,
 		emissive: 0x448844,
-		emissiveIntensity: 0.9,
+		emissiveIntensity: 0.25,
 		transparent: true,
 		opacity: 0.55
 	});
@@ -139,19 +139,19 @@ export function buildF22Model() {
 	leftWingTipMesh.position.set(-28, 15, -7.5);
 	airplaneGroup.add(leftWingTipMesh);
 
-	const rightWingTipTopLight = new THREE.PointLight(0xff0000, 120, 35);
+	const rightWingTipTopLight = new THREE.PointLight(0xff0000, 30, 25);
 	rightWingTipTopLight.position.set(28, 15.5, -7.5);
 	airplaneGroup.add(rightWingTipTopLight);
 
-	const rightWingTipBottomLight = new THREE.PointLight(0xff0000, 120, 35);
+	const rightWingTipBottomLight = new THREE.PointLight(0xff0000, 30, 25);
 	rightWingTipBottomLight.position.set(28, 14.5, -7.5);
 	airplaneGroup.add(rightWingTipBottomLight);
 
-	const leftWingTipTopLight = new THREE.PointLight(0x00ff00, 120, 35);
+	const leftWingTipTopLight = new THREE.PointLight(0x00ff00, 30, 25);
 	leftWingTipTopLight.position.set(-28, 15.5, -7.5);
 	airplaneGroup.add(leftWingTipTopLight);
 
-	const leftWingTipBottomLight = new THREE.PointLight(0x00ff00, 120, 35);
+	const leftWingTipBottomLight = new THREE.PointLight(0x00ff00, 30, 25);
 	leftWingTipBottomLight.position.set(-28, 14.5, -7.5);
 	airplaneGroup.add(leftWingTipBottomLight);
 
@@ -302,5 +302,28 @@ export function buildF22Model() {
 		}
 	});
 
-	return airplaneGroup;
+	function setFighterLightState(activeFactor, /* blinkVisible ignored */) {
+		const af = THREE.MathUtils.clamp(activeFactor, 0, 1);
+		const visibleNow = af > 0.01; // continuous when enabled
+
+		rightWingTipTopLight.visible = visibleNow;
+		rightWingTipBottomLight.visible = visibleNow;
+		leftWingTipTopLight.visible = visibleNow;
+		leftWingTipBottomLight.visible = visibleNow;
+
+		// Much lower intensity for steady lights
+		rightWingTipTopLight.intensity = 10 * af;
+		rightWingTipBottomLight.intensity = 10 * af;
+		leftWingTipTopLight.intensity = 10 * af;
+		leftWingTipBottomLight.intensity = 10 * af;
+
+		if (rightWingTipMesh && rightWingTipMesh.material && "emissiveIntensity" in rightWingTipMesh.material) {
+			rightWingTipMesh.material.emissiveIntensity = 0.08 * af;
+		}
+		if (leftWingTipMesh && leftWingTipMesh.material && "emissiveIntensity" in leftWingTipMesh.material) {
+			leftWingTipMesh.material.emissiveIntensity = 0.08 * af;
+		}
+	}
+
+	return { airplaneGroup, setFighterLightState };
 }

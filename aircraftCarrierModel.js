@@ -199,14 +199,14 @@ export function buildCarrierModel(textureLoader) {
 	carrierGroup.add(room4);
 
 	const line1Geometry = new THREE.BoxGeometry(2, 1.2, 260);
-	const line1Material = new THREE.MeshPhongMaterial({ color: 0x777777 });
+	const line1Material = new THREE.MeshPhongMaterial({ color: 0x555555 });
 	const line1 = new THREE.Mesh(line1Geometry, line1Material);
 	line1.position.set(40, -8, -10);
 	line1.rotation.y = Math.PI / 9.5;
 	carrierGroup.add(line1);
 
 	const line2Geometry = new THREE.BoxGeometry(2, 1.2, 260);
-	const line2Material = new THREE.MeshPhongMaterial({ color: 0x777777 });
+	const line2Material = new THREE.MeshPhongMaterial({ color: 0x555555 });
 	const line2 = new THREE.Mesh(line2Geometry, line2Material);
 	line2.position.set(-5, -8, 5);
 	line2.rotation.y = Math.PI / 9.5;
@@ -220,11 +220,11 @@ export function buildCarrierModel(textureLoader) {
 	carrierGroup.add(lineCenter);
 
 	const runwayEdgeLights = [];
-	const runwayEdgeLightGeometry = new THREE.SphereGeometry(0.55, 14, 14);
+	const runwayEdgeLightGeometry = new THREE.SphereGeometry(0.8, 16, 16);
 	const whiteRunwayLightMaterial = new THREE.MeshStandardMaterial({
 		color: 0xffffff,
 		emissive: 0xffffff,
-		emissiveIntensity: 0.8,
+		emissiveIntensity: 3.5,
 		roughness: 0.2,
 		metalness: 0.0,
 		transparent: true,
@@ -233,7 +233,7 @@ export function buildCarrierModel(textureLoader) {
 	const redRunwayLightMaterial = new THREE.MeshStandardMaterial({
 		color: 0xff4444,
 		emissive: 0xff0000,
-		emissiveIntensity: 0.8,
+		emissiveIntensity: 3.5,
 		roughness: 0.2,
 		metalness: 0.0,
 		transparent: true,
@@ -265,7 +265,7 @@ export function buildCarrierModel(textureLoader) {
 			lightMesh.position.set(0, 0, localZ);
 			laneGroup.add(lightMesh);
 
-			const pointLight = new THREE.PointLight(lightColor, isWhite ? 18 : 12, 40);
+			const pointLight = new THREE.PointLight(lightColor, lightColor === 0xffffff ? 70 : 70, 60);
 			pointLight.position.set(0, 0, localZ);
 			laneGroup.add(pointLight);
 
@@ -382,6 +382,32 @@ export function buildCarrierModel(textureLoader) {
 		{ lightMesh: deckLight4, pointLight: deckPointLight4, nightIntensity: 70, nightEmissive: 3.5 }
 	];
 
+	function refreshCarrierLights(nightFactor, deckBlinkVisible, heliBlinkVisible) {
+		const activeFactor = THREE.MathUtils.clamp(nightFactor, 0, 1);
+		const deckEmissiveFactor = activeFactor * (deckBlinkVisible ? 1 : 0);
+		const heliEmissiveFactor = activeFactor * (heliBlinkVisible ? 1 : 0);
+
+		for (const light of runwayEdgeLights) {
+			light.pointLight.visible = activeFactor > 0.01;
+			light.pointLight.intensity = 70 * activeFactor;
+			light.lightMesh.material.emissiveIntensity = 3.5 * activeFactor;
+		}
+
+		for (const light of heliCornerLights) {
+			light.pointLight.visible = activeFactor > 0.01 && heliBlinkVisible;
+			light.pointLight.intensity = light.nightIntensity * heliEmissiveFactor;
+			light.lightMesh.material.emissiveIntensity = light.nightEmissive * heliEmissiveFactor;
+		}
+
+		for (const light of deckCornerLights) {
+			light.pointLight.visible = activeFactor > 0.01 && deckBlinkVisible;
+			light.pointLight.intensity = light.nightIntensity * deckEmissiveFactor;
+			light.lightMesh.material.emissiveIntensity = light.nightEmissive * deckEmissiveFactor;
+		}
+	}
+
+	refreshCarrierLights(0, false, false);
+
 	carrierGroup.traverse((object) => {
 		if (object.isMesh) {
 			object.castShadow = true;
@@ -394,6 +420,7 @@ export function buildCarrierModel(textureLoader) {
 		radarSpinner,
 		runwayEdgeLights,
 		heliCornerLights,
-		deckCornerLights
+		deckCornerLights,
+		setCarrierLightState: refreshCarrierLights
 	};
 }
