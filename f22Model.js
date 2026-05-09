@@ -295,6 +295,24 @@ export function buildF22Model() {
 	leftGearPivot.add(rodaEsquerda);
 	airplaneGroup.add(leftGearPivot);
 
+	const gearPivots = [frontGearPivot, rightGearPivot, leftGearPivot];
+	const gearBase = gearPivots.map((pivot) => ({
+		pivot,
+		position: pivot.position.clone(),
+		rotation: pivot.rotation.clone()
+	}));
+
+	function setGearDeployFactor(factor) {
+		const t = THREE.MathUtils.clamp(factor, 0, 1);
+		const retractOffset = 6;
+		const retractRotation = -1.15;
+		for (const gear of gearBase) {
+			gear.pivot.position.copy(gear.position);
+			gear.pivot.position.y += (1 - t) * retractOffset;
+			gear.pivot.rotation.x = gear.rotation.x + (1 - t) * retractRotation;
+		}
+	}
+
 	airplaneGroup.traverse((object) => {
 		if (object.isMesh) {
 			object.castShadow = true;
@@ -325,5 +343,7 @@ export function buildF22Model() {
 		}
 	}
 
-	return { airplaneGroup, setFighterLightState };
+	setGearDeployFactor(1);
+
+	return { airplaneGroup, setFighterLightState, setGearDeployFactor };
 }

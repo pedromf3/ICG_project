@@ -3,29 +3,7 @@ import * as THREE from "three";
 export function buildCarrierModel(textureLoader) {
 	const carrierGroup = new THREE.Group();
 
-	const deckIronTexture = textureLoader.load(
-		new URL("./iron.png", import.meta.url).href,
-		(texture) => {
-			texture.colorSpace = THREE.SRGBColorSpace;
-			texture.wrapS = THREE.RepeatWrapping;
-			texture.wrapT = THREE.RepeatWrapping;
-			texture.minFilter = THREE.LinearMipmapLinearFilter;
-			texture.magFilter = THREE.LinearFilter;
-			texture.repeat.set(8, 3);
-			texture.needsUpdate = true;
-		},
-		undefined,
-		() => {
-			console.warn("Nao foi possivel carregar iron.png para os decks.");
-		}
-	);
 
-	deckIronTexture.colorSpace = THREE.SRGBColorSpace;
-	deckIronTexture.wrapS = THREE.RepeatWrapping;
-	deckIronTexture.wrapT = THREE.RepeatWrapping;
-	deckIronTexture.minFilter = THREE.LinearMipmapLinearFilter;
-	deckIronTexture.magFilter = THREE.LinearFilter;
-	deckIronTexture.repeat.set(8, 3);
 
 	const mainGeometry = new THREE.CylinderGeometry(42, 42, 300, 3);
 	const mainMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
@@ -35,21 +13,21 @@ export function buildCarrierModel(textureLoader) {
 	carrierGroup.add(mainBody);
 
 	const deckGeometry = new THREE.BoxGeometry(370, 15, 75);
-	const deckMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, map: deckIronTexture });
+	const deckMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
 	const deck = new THREE.Mesh(deckGeometry, deckMaterial);
 	deck.position.y = -15;
 	deck.rotation.y = Math.PI / 2;
 	carrierGroup.add(deck);
 
 	const secondaryDeckGeometry = new THREE.BoxGeometry(270, 15, 70);
-	const secondaryDeckMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, map: deckIronTexture });
+	const secondaryDeckMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
 	const secondaryDeck = new THREE.Mesh(secondaryDeckGeometry, secondaryDeckMaterial);
 	secondaryDeck.position.set(15, -15, 5);
 	secondaryDeck.rotation.y = Math.PI / 1.65;
 	carrierGroup.add(secondaryDeck);
 
 	const thirdDeckGeometry = new THREE.BoxGeometry(270, 15, 125);
-	const thirdDeckMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, map: deckIronTexture });
+	const thirdDeckMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
 	const thirdDeck = new THREE.Mesh(thirdDeckGeometry, thirdDeckMaterial);
 	thirdDeck.position.set(-10, -15, -5);
 	thirdDeck.rotation.y = Math.PI / 2;
@@ -199,28 +177,28 @@ export function buildCarrierModel(textureLoader) {
 	carrierGroup.add(room4);
 
 	const line1Geometry = new THREE.BoxGeometry(2, 1.2, 260);
-	const line1Material = new THREE.MeshPhongMaterial({ color: 0x555555 });
+	const line1Material = new THREE.MeshLambertMaterial({ color: 0x555555 });
 	const line1 = new THREE.Mesh(line1Geometry, line1Material);
 	line1.position.set(40, -8, -10);
 	line1.rotation.y = Math.PI / 9.5;
 	carrierGroup.add(line1);
 
 	const line2Geometry = new THREE.BoxGeometry(2, 1.2, 260);
-	const line2Material = new THREE.MeshPhongMaterial({ color: 0x555555 });
+	const line2Material = new THREE.MeshLambertMaterial({ color: 0x555555 });
 	const line2 = new THREE.Mesh(line2Geometry, line2Material);
 	line2.position.set(-5, -8, 5);
 	line2.rotation.y = Math.PI / 9.5;
 	carrierGroup.add(line2);
 
 	const lineCenterGeometry = new THREE.BoxGeometry(2, 1.2, 260);
-	const lineCenterMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+	const lineCenterMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
 	const lineCenter = new THREE.Mesh(lineCenterGeometry, lineCenterMaterial);
 	lineCenter.position.set(17.5, -8, -2.5);
 	lineCenter.rotation.y = Math.PI / 9.5;
 	carrierGroup.add(lineCenter);
 
 	const runwayEdgeLights = [];
-	const runwayEdgeLightGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+	const runwayEdgeLightGeometry = new THREE.SphereGeometry(0.4, 16, 16);
 	const whiteRunwayLightMaterial = new THREE.MeshStandardMaterial({
 		color: 0xffffff,
 		emissive: 0xffffff,
@@ -262,11 +240,11 @@ export function buildCarrierModel(textureLoader) {
 			const lightMaterial = isWhite ? whiteRunwayLightMaterial.clone() : redRunwayLightMaterial.clone();
 
 			const lightMesh = new THREE.Mesh(runwayEdgeLightGeometry, lightMaterial);
-			lightMesh.position.set(0, 0, localZ);
+			lightMesh.position.set(0, 0.1, localZ);
 			laneGroup.add(lightMesh);
 
 			const pointLight = new THREE.PointLight(lightColor, lightColor === 0xffffff ? 70 : 70, 60);
-			pointLight.position.set(0, 0, localZ);
+			pointLight.position.set(0, 0.1, localZ);
 			laneGroup.add(pointLight);
 
 			runwayEdgeLights.push({ lightMesh, pointLight, isWhite });
@@ -298,7 +276,7 @@ export function buildCarrierModel(textureLoader) {
 	heliCircle.rotation.x = -Math.PI / 2;
 	carrierGroup.add(heliCircle);
 
-	const heliSquareCornerGeometry = new THREE.SphereGeometry(0.65, 16, 16);
+	const heliSquareCornerGeometry = new THREE.SphereGeometry(0.4, 16, 16);
 	const heliSquareGreenMaterial = new THREE.MeshStandardMaterial({
 		color: 0x66ff66,
 		emissive: 0x00ff00,
@@ -336,7 +314,7 @@ export function buildCarrierModel(textureLoader) {
 		});
 	}
 
-	const deckCornerLightGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+	const deckCornerLightGeometry = new THREE.SphereGeometry(0.4, 16, 16);
 	const deckCornerRedMaterial = new THREE.MeshStandardMaterial({
 		color: 0xff6666,
 		emissive: 0xff0000,
@@ -348,31 +326,31 @@ export function buildCarrierModel(textureLoader) {
 	});
 
 	const deckLight1 = new THREE.Mesh(deckCornerLightGeometry, deckCornerRedMaterial.clone());
-	deckLight1.position.set(-25, -7.2, 172.5);
+	deckLight1.position.set(-25, -7.4, 172.5);
 	carrierGroup.add(deckLight1);
 	const deckPointLight1 = new THREE.PointLight(0xff0000, 70, 60);
-	deckPointLight1.position.set(-25, -7.2, 172.5);
+	deckPointLight1.position.set(-25, -7.4, 172.5);
 	carrierGroup.add(deckPointLight1);
 
 	const deckLight2 = new THREE.Mesh(deckCornerLightGeometry, deckCornerRedMaterial.clone());
-	deckLight2.position.set(25, -7.2, 172.5);
+	deckLight2.position.set(25, -7.4, 172.5);
 	carrierGroup.add(deckLight2);
 	const deckPointLight2 = new THREE.PointLight(0xff0000, 70, 60);
-	deckPointLight2.position.set(25, -7.2, 172.5);
+	deckPointLight2.position.set(25, -7.4, 172.5);
 	carrierGroup.add(deckPointLight2);
 
 	const deckLight3 = new THREE.Mesh(deckCornerLightGeometry, deckCornerRedMaterial.clone());
-	deckLight3.position.set(-25, -7.2, -172.5);
+	deckLight3.position.set(-25, -7.4, -172.5);
 	carrierGroup.add(deckLight3);
 	const deckPointLight3 = new THREE.PointLight(0xff0000, 70, 60);
-	deckPointLight3.position.set(-25, -7.2, -172.5);
+	deckPointLight3.position.set(-25, -7.4, -172.5);
 	carrierGroup.add(deckPointLight3);
 
 	const deckLight4 = new THREE.Mesh(deckCornerLightGeometry, deckCornerRedMaterial.clone());
-	deckLight4.position.set(25, -7.2, -172.5);
+	deckLight4.position.set(25, -7.4, -172.5);
 	carrierGroup.add(deckLight4);
 	const deckPointLight4 = new THREE.PointLight(0xff0000, 70, 60);
-	deckPointLight4.position.set(25, -7.2, -172.5);
+	deckPointLight4.position.set(25, -7.4, -172.5);
 	carrierGroup.add(deckPointLight4);
 
 	const deckCornerLights = [
