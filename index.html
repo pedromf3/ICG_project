@@ -554,7 +554,7 @@
             });
             }
 
-            const { helicopterGroup, setHelicopterLightState } = buildUH1YModel();
+            const { helicopterGroup, helicesGroup, backHelicesGroup, setHelicopterLightState } = buildUH1YModel();
             const mainHelicopter = helicopterGroup;
             mainHelicopter.scale.setScalar(0.3);
             mainHelicopter.position.set(-50, -9.1, 100);
@@ -562,6 +562,9 @@
 
             disableModelArtificialLights(carrierGroup);
             disableModelArtificialLights(helicopterGroup);
+
+            let currentRotorSpeed = 0;
+            const MAX_ROTOR_SPEED = Math.PI * 18; // Velocidade máxima de rotação das hélices
 
             const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 5000);
             camera.position.set(-380, 240, 520);
@@ -655,7 +658,11 @@
             KeyW: false,
             KeyA: false,
             KeyS: false,
-            KeyD: false
+            KeyD: false,
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
             };
             const firstPersonMoveVector = new THREE.Vector3();
             const firstPersonSpawn = new THREE.Vector3(
@@ -918,6 +925,69 @@
             camera.quaternion.copy(tempQuat);
             }
 
+            function updateHelicopterMovement(deltaSeconds) {
+            if (!mainHelicopter) return;
+
+            const prevPos = mainHelicopter.position.clone();
+
+            const HELI_SPEED = 80;
+            const HELI_ROTATION_SPEED = 1.5;
+            const HELI_VERTICAL_SPEED = 40;
+
+            if (keyState.ArrowLeft) {
+                mainHelicopter.rotation.y += HELI_ROTATION_SPEED * deltaSeconds;
+            }
+            if (keyState.ArrowRight) {
+                mainHelicopter.rotation.y -= HELI_ROTATION_SPEED * deltaSeconds;
+            }
+
+            if (keyState.ArrowUp) {
+                mainHelicopter.position.y += HELI_VERTICAL_SPEED * deltaSeconds;
+            }
+            if (keyState.ArrowDown) {
+                mainHelicopter.position.y -= HELI_VERTICAL_SPEED * deltaSeconds;
+            }
+
+            // Previne que o helicóptero desça abaixo da altura inicial (convés) ou suba ao infinito
+            mainHelicopter.position.y = THREE.MathUtils.clamp(mainHelicopter.position.y, -9.1, 800);
+
+            const moveZ = (keyState.KeyW ? 1 : 0) - (keyState.KeyS ? 1 : 0);
+            const moveX = (keyState.KeyA ? 1 : 0) - (keyState.KeyD ? 1 : 0);
+            
+            const moveDir = new THREE.Vector3(moveX, 0, moveZ);
+            
+            if (moveDir.lengthSq() > 0) {
+                // Alinha o vetor de movimento com a direção para onde o helicóptero "olha"
+                moveDir.applyQuaternion(mainHelicopter.quaternion);
+                
+                // Ignora qualquer inclinação Y resultante para que o WASD mova apenas na horizontal
+                moveDir.y = 0;
+                moveDir.normalize(); // Mantém a velocidade consistente nas diagonais
+                
+                mainHelicopter.position.addScaledVector(moveDir, HELI_SPEED * deltaSeconds);
+            }
+
+            // Aplica limites nas bordas do mapa (baseado no tamanho do oceano 2600x2600)
+            const MAP_LIMIT = 1250;
+            mainHelicopter.position.x = THREE.MathUtils.clamp(mainHelicopter.position.x, -MAP_LIMIT, MAP_LIMIT);
+            mainHelicopter.position.z = THREE.MathUtils.clamp(mainHelicopter.position.z, -MAP_LIMIT, MAP_LIMIT);
+
+            // Colisão com a torre do porta-aviões (inclui padding para o tamanho do helicóptero)
+            const TOWER_MIN_X = -69;
+            const TOWER_MAX_X = -41;
+            const TOWER_MIN_Z = -79;
+            const TOWER_MAX_Z = -41;
+            const TOWER_MAX_Y = 27.5;
+
+            if (
+                mainHelicopter.position.x > TOWER_MIN_X && mainHelicopter.position.x < TOWER_MAX_X &&
+                mainHelicopter.position.z > TOWER_MIN_Z && mainHelicopter.position.z < TOWER_MAX_Z &&
+                mainHelicopter.position.y < TOWER_MAX_Y
+            ) {
+                mainHelicopter.position.copy(prevPos);
+            }
+            }
+
             function updateFirstPersonMovement(deltaSeconds) {
             const forwardInput = (keyState.KeyW ? 1 : 0) - (keyState.KeyS ? 1 : 0);
             const rightInput = (keyState.KeyD ? 1 : 0) - (keyState.KeyA ? 1 : 0);
@@ -1086,6 +1156,10 @@
             }
 
             if (event.code in keyState) {
+                // Previne o scroll da página com as setas quando no controlo do helicóptero
+                if (currentVehicleViewMode === "heli" && event.code.startsWith("Arrow")) {
+                    event.preventDefault();
+                }
                 keyState[event.code] = true;
             }
             });
@@ -1216,9 +1290,31 @@
                 ocean.material.uniforms.time.value += frameDeltaSeconds * WATER_TIME_SCALE;
             }
 
+            // Verifica se o helicóptero está estacionado no perímetro do heliporto
+            const isParked = (
+                mainHelicopter.position.x > -64 && mainHelicopter.position.x < -36 &&
+                mainHelicopter.position.z > 86 && mainHelicopter.position.z < 114 &&
+                mainHelicopter.position.y < -8.5
+            );
+
+            // Aceleração/Desaceleração suave das hélices
+            if (!isParked) {
+                currentRotorSpeed = THREE.MathUtils.lerp(currentRotorSpeed, MAX_ROTOR_SPEED, frameDeltaSeconds * 2.0);
+            } else {
+                currentRotorSpeed = THREE.MathUtils.lerp(currentRotorSpeed, 0, frameDeltaSeconds * 1.5);
+            }
+
+            if (currentRotorSpeed > 0.01) {
+                helicesGroup.rotation.y += currentRotorSpeed * frameDeltaSeconds;
+                backHelicesGroup.rotation.y += currentRotorSpeed * frameDeltaSeconds;
+            }
+
             fighterStateMachine.update(frameDeltaSeconds);
 
             if (currentVehicleViewMode) {
+                if (currentVehicleViewMode === "heli") {
+                    updateHelicopterMovement(frameDeltaSeconds);
+                }
                 updateVehicleViewCamera();
             } else if (isFirstPersonMode) {
                 updateFirstPersonMovement(frameDeltaSeconds);
