@@ -349,6 +349,189 @@
             mainFighter.userData.setGearDeployFactor(1);
             }
 
+            class FighterStateMachine {
+                constructor(fighter) {
+                    this.fighter = fighter;
+                    this.state = 'TAKEOFF';
+                    
+                    // Traverse to clone materials and enable transparency for the fade-out effect
+                    this.fighter.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material = child.material.map(m => m.clone());
+                                child.material.forEach(m => m.transparent = true);
+                                child.userData.origOpacity = child.material.map(m => m.opacity !== undefined ? m.opacity : 1.0);
+                            } else {
+                                child.material = child.material.clone();
+                                child.material.transparent = true;
+                                child.userData.origOpacity = child.material.opacity !== undefined ? child.material.opacity : 1.0;
+                            }
+                        }
+                    });
+                    
+                    this.speed = 100;
+                    this.pitch = 0;
+                    this.altitude = 0;
+                    this.gearFactor = 1.0;
+                    this.distance = -100; // Start at touchdown point for full runway roll
+                    
+                    this.runwayOrigin = new THREE.Vector3(17.5, -7.5, -2.5);
+                    this.dir = new THREE.Vector3(Math.sin(Math.PI / 9.5), 0, Math.cos(Math.PI / 9.5));
+                    
+                    this.touchdownPoint = new THREE.Vector3(
+                        this.runwayOrigin.x + this.dir.x * -100,
+                        this.runwayOrigin.y,
+                        this.runwayOrigin.z + this.dir.z * -100
+                    );
+                    
+                    this.teleportPos = new THREE.Vector3();
+                    this.approachStartPos = new THREE.Vector3();
+                    this.approachDist = 0;
+                }
+
+                update(delta) {
+                    if (delta > 0.1) delta = 0.1; // Safety clamp for lag spikes
+                    
+                    switch(this.state) {
+                        case 'TAKEOFF':
+                            this.speed = THREE.MathUtils.lerp(this.speed, 350, delta * 0.5);
+                            this.distance += this.speed * delta;
+                            
+                            // Liftoff and pitch up
+                            if (this.distance > 60) {
+                                this.pitch = THREE.MathUtils.lerp(this.pitch, Math.PI / 12, delta * 3);
+                                this.altitude += Math.sin(this.pitch) * this.speed * delta;
+                                
+                                if (this.altitude > 100) {
+                                    this.state = 'GEAR_RETRACTION';
+                                }
+                            }
+                            this.updatePosFromDist();
+                            break;
+                            
+                        case 'GEAR_RETRACTION':
+                            this.distance += this.speed * delta;
+                            this.altitude += Math.sin(this.pitch) * this.speed * delta;
+                            
+                            this.gearFactor = Math.max(0, this.gearFactor - delta * 1.5);
+                            if (this.fighter.userData.setGearDeployFactor) {
+                                this.fighter.userData.setGearDeployFactor(this.gearFactor);
+                            }
+                            
+                            if (this.altitude > 300) {
+                                this.state = 'FLY_TO_EDGE';
+                            }
+                            this.updatePosFromDist();
+                            break;
+                            
+                        case 'FLY_TO_EDGE':
+                            this.distance += this.speed * delta;
+                            this.pitch = THREE.MathUtils.lerp(this.pitch, 0, delta * 2);
+                            
+                            if (this.distance > 2200) {
+                                this.state = 'FADE_OUT';
+                            }
+                            this.updatePosFromDist();
+                            break;
+                            
+                        case 'FADE_OUT':
+                            this.distance += this.speed * delta;
+                            let fadeOut = 1.0 - THREE.MathUtils.clamp((this.distance - 2200) / 600, 0, 1);
+                            this.setOpacity(fadeOut);
+                            
+                            if (this.distance > 2800) {
+                                this.state = 'TELEPORT';
+                            }
+                            this.updatePosFromDist();
+                            break;
+                            
+                        case 'TELEPORT':
+                            this.fighter.position.set(-this.fighter.position.x, this.fighter.position.y, -this.fighter.position.z);
+                            this.teleportPos.copy(this.fighter.position);
+                            this.approachStartPos.copy(this.fighter.position);
+                            this.approachDist = this.teleportPos.distanceTo(this.touchdownPoint);
+                            this.distance = 0;
+                            this.setOpacity(0);
+                            this.pitch = -Math.PI / 36; // Pitch down slightly on approach for a better runway view
+                            this.state = 'APPROACH_AND_DEPLOY';
+                            break;
+                            
+                        case 'APPROACH_AND_DEPLOY':
+                            this.distance += this.speed * delta;
+                            let progress = this.distance / this.approachDist;
+                            progress = Math.min(1.0, Math.max(0, progress));
+                            
+                            // Keeps plane completely anchored to a strictly straight line between teleport and runway touchdown
+                            this.fighter.position.lerpVectors(this.approachStartPos, this.touchdownPoint, progress);
+                            
+                            let fadeIn = THREE.MathUtils.clamp(progress / 0.25, 0, 1);
+                            this.setOpacity(fadeIn);
+                            
+                            if (progress > 0.65) {
+                                this.gearFactor = Math.min(1, this.gearFactor + delta * 1.5);
+                                if (this.fighter.userData.setGearDeployFactor) {
+                                    this.fighter.userData.setGearDeployFactor(this.gearFactor);
+                                }
+                            }
+
+                            const approachDir = new THREE.Vector3().subVectors(this.touchdownPoint, this.approachStartPos).normalize();
+                            const targetHeading = Math.atan2(approachDir.x, approachDir.z);
+                            
+                            this.fighter.rotation.set(0, 0, 0);
+                            this.fighter.rotateY(targetHeading);
+                            this.fighter.rotateX(-this.pitch);
+
+                            if (progress >= 1.0) {
+                                this.state = 'TOUCH_AND_GO';
+                                this.distance = -100;
+                                this.altitude = 0;
+                            }
+                            break;
+                            
+                        case 'TOUCH_AND_GO':
+                            this.distance += this.speed * delta;
+                            this.pitch = THREE.MathUtils.lerp(this.pitch, 0, delta * 5);
+                            this.speed = THREE.MathUtils.lerp(this.speed, 150, delta * 1.5);
+                            
+                            this.updatePosFromDist();
+                            
+                            // Start taking off again after a brief roll
+                            if (this.distance > -20) {
+                                this.state = 'TAKEOFF';
+                            }
+                            break;
+                    }
+                }
+                
+                updatePosFromDist() {
+                    this.fighter.position.set(
+                        this.runwayOrigin.x + this.dir.x * this.distance,
+                        this.runwayOrigin.y + this.altitude,
+                        this.runwayOrigin.z + this.dir.z * this.distance
+                    );
+                    this.fighter.rotation.set(0, 0, 0);
+                    this.fighter.rotateY(Math.PI / 9.5);
+                    this.fighter.rotateX(-this.pitch);
+                }
+                
+                setOpacity(alpha) {
+                    this.fighter.userData.opacityMultiplier = alpha;
+                    this.fighter.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach((mat, i) => {
+                                    mat.opacity = (child.userData.origOpacity[i] !== undefined ? child.userData.origOpacity[i] : 1.0) * alpha;
+                                });
+                            } else {
+                                child.material.opacity = (child.userData.origOpacity !== undefined ? child.userData.origOpacity : 1.0) * alpha;
+                            }
+                        }
+                    });
+                }
+            }
+            
+            const fighterStateMachine = new FighterStateMachine(mainFighter);
+
             const parkedFighterSlots = [
             { x: 35, z: -120, heading: runwayAngle + Math.PI + 2.5 },
             { x: 20, z: -155,  heading: runwayAngle + Math.PI + 2.5 },
@@ -1032,6 +1215,8 @@
             if (ocean && ocean.material && ocean.material.uniforms) {
                 ocean.material.uniforms.time.value += frameDeltaSeconds * WATER_TIME_SCALE;
             }
+
+            fighterStateMachine.update(frameDeltaSeconds);
 
             if (currentVehicleViewMode) {
                 updateVehicleViewCamera();
