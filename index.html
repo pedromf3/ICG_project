@@ -106,48 +106,33 @@
             color: #ffffff;
             box-shadow: 0 0 10px rgba(100, 150, 100, 0.5);
             }
-
-            #viewModeHelp {
-            position: fixed;
-            bottom: 62px;
-            left: 14px;
-            z-index: 10;
-            padding: 7px 10px;
-            color: #d4e0ec;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            border-radius: 6px;
-            font-size: 12px;
-            letter-spacing: 0.3px;
-            display: none;
-            }
         </style>
     </head>
     <body>
         <div id="militaryMenu">
             <div class="menu-section">
                 <div class="menu-title">Vision</div>
-                <button class="menu-option active" data-action="view-orbital">Orbital</button>
-                <button class="menu-option" data-action="view-firstperson">1st Person</button>
-                <button class="menu-option" data-action="view-heli">Helicopter</button>
-                <button class="menu-option" data-action="view-fighter">Fighter</button>
+                <button class="menu-option active" data-action="view-orbital">[1] Orbital</button>
+                <button class="menu-option" data-action="view-firstperson">[2] 1st Person</button>
+                <button class="menu-option" data-action="view-heli">[3] Helicopter</button>
+                <button class="menu-option" data-action="view-fighter">[4] Fighter</button>
             </div>
 
             <div class="menu-section">
                 <div class="menu-title">Time of Day</div>
-                <button class="menu-option active" data-action="time-day">Day</button>
-                <button class="menu-option" data-action="time-night">Night</button>
+                <button class="menu-option active" data-action="time-day">[5] Day</button>
+                <button class="menu-option" data-action="time-night">[6] Night</button>
             </div>
 
             <div class="menu-section">
                 <div class="menu-title">Lighting</div>
-                <button class="menu-option active" data-action="lights-heli">Heli Lights</button>
-                <button class="menu-option active" data-action="lights-fighter">Fighter Lights</button>
+                <button class="menu-option active" data-action="lights-heli">[7] Heli Lights</button>
+                <button class="menu-option active" data-action="lights-fighter">[8] Fighter Lights</button>
             </div>
 
             <div class="menu-section">
                 <div class="menu-title">Systems</div>
-                <button class="menu-option" data-action="perimeter">Perimeter</button>
+                <button class="menu-option" data-action="perimeter">[9] Perimeter</button>
             </div>
         </div>
 
@@ -161,7 +146,6 @@
             <button id="toggleFighterLightsButton" type="button" class="hudButton">Caças: Luzes ON</button>
             <button id="toggleHeliLightsButton" type="button" class="hudButton">Heli: Luzes ON</button>
         </div>
-        <div id="viewModeHelp">WASD para andar</div>
         <div id="WebGL-output"></div>
 
         <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
@@ -245,7 +229,8 @@
             waterNormalsTexture.repeat.set(3.25, 3.25);
             
             // Create water with advanced reflections
-            const oceanGeometry = new THREE.PlaneGeometry(2600, 2600, 128, 128);
+            // Aumentado para cobrir a visibilidade até ao nevoeiro e o percurso completo do caça
+            const oceanGeometry = new THREE.PlaneGeometry(8000, 8000, 256, 256);
             const ocean = new Water(oceanGeometry, {
                 textureWidth: 1024,
                 textureHeight: 1024,
@@ -566,6 +551,13 @@
             let currentRotorSpeed = 0;
             const MAX_ROTOR_SPEED = Math.PI * 18; // Velocidade máxima de rotação das hélices
 
+            const mouse = new THREE.Vector2();
+            const raycaster = new THREE.Raycaster();
+            const projectiles = [];
+            const splashes = [];
+            const smokes = [];
+            const PROJECTILE_SPEED = 1200;
+
             const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 5000);
             camera.position.set(-380, 240, 520);
             camera.lookAt(0, -20, 0);
@@ -639,11 +631,11 @@
             const togglePerimeterButton = document.getElementById("togglePerimeterButton");
             const toggleFighterLightsButton = document.getElementById("toggleFighterLightsButton");
             const toggleHeliLightsButton = document.getElementById("toggleHeliLightsButton");
-            const viewModeHelp = document.getElementById("viewModeHelp");
 
             let fighterLightsEnabled = true;
             let helicopterLightsEnabled = true;
             let currentVehicleViewMode = null; // "fighter", "heli", or null
+            let isHeliFiring = false;
 
             toggleFighterLightsButton.addEventListener("click", () => {
             fighterLightsEnabled = !fighterLightsEnabled;
@@ -662,7 +654,9 @@
             ArrowUp: false,
             ArrowDown: false,
             ArrowLeft: false,
-            ArrowRight: false
+            ArrowRight: false,
+            ShiftLeft: false,
+            ShiftRight: false
             };
             const firstPersonMoveVector = new THREE.Vector3();
             const firstPersonSpawn = new THREE.Vector3(
@@ -834,6 +828,7 @@
             if (isFirstPersonMode) {
                 orbitSavedPosition.copy(camera.position);
                 orbitSavedTarget.copy(controls.target);
+                renderer.domElement.style.cursor = "default";
                 hasSavedOrbitPose = true;
 
                 controls.enabled = false;
@@ -842,7 +837,6 @@
                 clampFirstPersonPosition();
 
                 viewToggleButton.textContent = "Visao: Primeira Pessoa";
-                viewModeHelp.style.display = "block";
                 firstPersonControls.lock();
                 return;
             }
@@ -856,8 +850,8 @@
             }
 
             viewToggleButton.textContent = "Visao: Orbital";
-            viewModeHelp.style.display = "none";
             controls.update();
+            renderer.domElement.style.cursor = "default";
             }
 
             function setVehicleViewMode(vehicleType) {
@@ -885,12 +879,13 @@
                     viewToggleButton.textContent = "Visao: Orbital";
                     fighterViewButton.textContent = "Caça: Cockpit (ATIVO)";
                     heliViewButton.textContent = "Heli: Cockpit";
+                    renderer.domElement.style.cursor = "default";
                 } else {
                     viewToggleButton.textContent = "Visao: Orbital";
                     fighterViewButton.textContent = "Caça: Cockpit";
                     heliViewButton.textContent = "Heli: Cockpit (ATIVO)";
+                    renderer.domElement.style.cursor = "crosshair";
                 }
-                viewModeHelp.style.display = "none";
             } else {
                 // Return to orbital
                 currentVehicleViewMode = null;
@@ -902,8 +897,8 @@
                 viewToggleButton.textContent = "Visao: Orbital";
                 fighterViewButton.textContent = "Caça: Cockpit";
                 heliViewButton.textContent = "Heli: Cockpit";
-                viewModeHelp.style.display = "none";
                 controls.update();
+                renderer.domElement.style.cursor = "default";
             }
             }
 
@@ -930,9 +925,12 @@
 
             const prevPos = mainHelicopter.position.clone();
 
-            const HELI_SPEED = 80;
+            const isBoostActive = keyState.ShiftLeft || keyState.ShiftRight;
+            const speedMultiplier = isBoostActive ? 2.0 : 1.0;
+
+            const HELI_SPEED = 80 * speedMultiplier;
             const HELI_ROTATION_SPEED = 1.5;
-            const HELI_VERTICAL_SPEED = 40;
+            const HELI_VERTICAL_SPEED = 40 * speedMultiplier;
 
             if (keyState.ArrowLeft) {
                 mainHelicopter.rotation.y += HELI_ROTATION_SPEED * deltaSeconds;
@@ -967,7 +965,7 @@
                 mainHelicopter.position.addScaledVector(moveDir, HELI_SPEED * deltaSeconds);
             }
 
-            // Aplica limites nas bordas do mapa (baseado no tamanho do oceano 2600x2600)
+            // Aplica limites nas bordas para o helicóptero (mantendo a área jogável original)
             const MAP_LIMIT = 1250;
             mainHelicopter.position.x = THREE.MathUtils.clamp(mainHelicopter.position.x, -MAP_LIMIT, MAP_LIMIT);
             mainHelicopter.position.z = THREE.MathUtils.clamp(mainHelicopter.position.z, -MAP_LIMIT, MAP_LIMIT);
@@ -1079,7 +1077,11 @@
 
                     if (action === 'view-orbital') {
                         currentViewMode = 'orbital';
-                        setViewMode(false);
+                        if (isFirstPersonMode) {
+                            setViewMode(false);
+                        } else if (currentVehicleViewMode) {
+                            setVehicleViewMode(null);
+                        }
                     } else if (action === 'view-firstperson') {
                         currentViewMode = 'firstperson';
                         setViewMode(true);
@@ -1134,6 +1136,51 @@
             }
             });
 
+            window.addEventListener('mousemove', (event) => {
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            renderer.domElement.addEventListener('mousedown', (event) => {
+                // Botão esquerdo do rato e tem de estar na view do helicóptero
+                if (event.button === 0 && currentVehicleViewMode === 'heli') {
+                    isHeliFiring = true;
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    const targetPoint = new THREE.Vector3();
+                    raycaster.ray.at(3000, targetPoint);
+                    
+                    const heliPos = new THREE.Vector3();
+                    mainHelicopter.getWorldPosition(heliPos);
+                    
+                    const spawnPos = heliPos.clone();
+                    spawnPos.y -= 2; // Dispara ligeiramente abaixo do centro para não tapar a visão/bater no modelo
+                    
+                    const direction = new THREE.Vector3().subVectors(targetPoint, spawnPos).normalize();
+                    
+                    const bulletGeom = new THREE.CylinderGeometry(0.4, 0.4, 25, 8);
+                    bulletGeom.rotateX(Math.PI / 2); // Alinha o cilindro com a direção do disparo
+                    const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+                    const bullet = new THREE.Mesh(bulletGeom, bulletMat);
+                    
+                    bullet.position.copy(spawnPos);
+                    bullet.lookAt(targetPoint);
+                    scene.add(bullet);
+                    
+                    projectiles.push({
+                        mesh: bullet,
+                        velocity: direction.multiplyScalar(PROJECTILE_SPEED),
+                        distanceTraveled: 0
+                    });
+                }
+            });
+
+            window.addEventListener('mouseup', (event) => {
+                if (event.button === 0) {
+                    isHeliFiring = false;
+                }
+            });
+
             window.addEventListener("keydown", (event) => {
             if (event.code === "Escape") {
                 event.preventDefault();
@@ -1149,11 +1196,6 @@
                 }
                 return;
             }
-            if (event.code === "Space" && !event.repeat) {
-                event.preventDefault();
-                setViewMode(!isFirstPersonMode);
-                return;
-            }
 
             if (event.code in keyState) {
                 // Previne o scroll da página com as setas quando no controlo do helicóptero
@@ -1161,6 +1203,16 @@
                     event.preventDefault();
                 }
                 keyState[event.code] = true;
+            }
+
+            if (event.code.startsWith('Digit') && !event.repeat) {
+                const digit = parseInt(event.code.replace('Digit', ''));
+                if (digit >= 1 && digit <= 9) {
+                    const btnIndex = digit - 1;
+                    if (menuButtons[btnIndex]) {
+                        menuButtons[btnIndex].click();
+                    }
+                }
             }
             });
 
@@ -1249,13 +1301,12 @@
             const adjustedNightFactor = THREE.MathUtils.clamp((nightFactor - 0.65) * 2.86, 0, 1);
             const deckBlinkVisible = adjustedNightFactor > 0.05 && Math.sin(cycleElapsedMs / 260) > 0;
             const heliBlinkVisible = adjustedNightFactor > 0.05 && Math.sin(cycleElapsedMs / 420) > 0;
-            const effectiveHeliFactor = helicopterLightsEnabled ? adjustedNightFactor : 0;
+            let effectiveHeliFactor = helicopterLightsEnabled ? (adjustedNightFactor * 8) : 0;
+
             setCarrierLightState(adjustedNightFactor, deckBlinkVisible, heliBlinkVisible);
             if (setHelicopterLightState) setHelicopterLightState(effectiveHeliFactor);
             }
 
-            // Re-apply fighter lights each frame (fighters are children of carrierGroup which
-            // was globally disabled earlier). This ensures fighter nav lights follow night state.
             if (typeof fighterLightSetters !== 'undefined' && fighterLightSetters.length > 0) {
             const adjustedNightFactor = THREE.MathUtils.clamp((nightFactor - 0.65) * 2.86, 0, 1);
             const fighterAF = fighterLightsEnabled ? adjustedNightFactor : 0;
@@ -1307,6 +1358,129 @@
             if (currentRotorSpeed > 0.01) {
                 helicesGroup.rotation.y += currentRotorSpeed * frameDeltaSeconds;
                 backHelicesGroup.rotation.y += currentRotorSpeed * frameDeltaSeconds;
+            }
+
+            // Atualizar física dos projéteis disparados
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                const moveVec = p.velocity.clone().multiplyScalar(frameDeltaSeconds);
+                const nextPos = p.mesh.position.clone().add(moveVec);
+                
+                // Colisão com o porta-aviões (e objetos nele)
+                const dist = moveVec.length();
+                const dir = moveVec.clone().normalize();
+                const projRay = new THREE.Raycaster(p.mesh.position, dir, 0, dist);
+                const carrierHits = projRay.intersectObject(carrierGroup, true);
+                
+                let hitPoint = null;
+                for (let j = 0; j < carrierHits.length; j++) {
+                    let obj = carrierHits[j].object;
+                    let isShooter = false;
+                    // Evitar que o helicóptero atire em si mesmo
+                    while (obj) {
+                        if (obj === mainHelicopter) {
+                            isShooter = true;
+                            break;
+                        }
+                        obj = obj.parent;
+                    }
+                    if (!isShooter) {
+                        hitPoint = carrierHits[j].point;
+                        break;
+                    }
+                }
+
+                if (hitPoint) {
+                    const smokeGeom = new THREE.SphereGeometry(1.5, 8, 8);
+                    const smokeMatBase = new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.8 });
+                    
+                    for (let k = 0; k < 3; k++) {
+                        const sMesh = new THREE.Mesh(smokeGeom, smokeMatBase.clone());
+                        sMesh.position.copy(hitPoint);
+                        sMesh.position.x += (Math.random() - 0.5) * 1.5;
+                        sMesh.position.y += (Math.random() - 0.5) * 1.5;
+                        sMesh.position.z += (Math.random() - 0.5) * 1.5;
+                        scene.add(sMesh);
+                        smokes.push({
+                            mesh: sMesh,
+                            life: 1.0 + Math.random() * 0.5,
+                            maxLife: 1.5,
+                            scale: 0.5 + Math.random() * 0.5,
+                            velY: 4 + Math.random() * 8
+                        });
+                    }
+                    
+                    scene.remove(p.mesh);
+                    if (p.mesh.geometry) p.mesh.geometry.dispose();
+                    if (p.mesh.material) p.mesh.material.dispose();
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+
+                // Colisão com a água
+                if (p.mesh.position.y > WATER_LEVEL_Y && nextPos.y <= WATER_LEVEL_Y) {
+                    const hitFactor = (WATER_LEVEL_Y - p.mesh.position.y) / moveVec.y;
+                    const hitX = p.mesh.position.x + moveVec.x * hitFactor;
+                    const hitZ = p.mesh.position.z + moveVec.z * hitFactor;
+                    
+                    const ringGeom = new THREE.RingGeometry(0.1, 1.5, 32);
+                    const splashMat = new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+                    const splashMesh = new THREE.Mesh(ringGeom, splashMat);
+                    splashMesh.rotation.x = -Math.PI / 2;
+                    splashMesh.position.set(hitX, WATER_LEVEL_Y + 0.2, hitZ); // Ligeiramente acima da água para evitar glitch (z-fighting)
+                    scene.add(splashMesh);
+                    
+                    splashes.push({ mesh: splashMesh, life: 0.8, maxLife: 0.8, scale: 1.0 });
+                    
+                    scene.remove(p.mesh);
+                    if (p.mesh.geometry) p.mesh.geometry.dispose();
+                    if (p.mesh.material) p.mesh.material.dispose();
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+                
+                p.mesh.position.copy(nextPos);
+                p.distanceTraveled += moveVec.length();
+                
+                if (p.distanceTraveled > 4000) {
+                    scene.remove(p.mesh);
+                    if (p.mesh.geometry) p.mesh.geometry.dispose();
+                    if (p.mesh.material) p.mesh.material.dispose();
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            // Atualizar física dos salpicos (splashes) na água
+            for (let i = splashes.length - 1; i >= 0; i--) {
+                const s = splashes[i];
+                s.life -= frameDeltaSeconds;
+                if (s.life <= 0) {
+                    scene.remove(s.mesh);
+                    if (s.mesh.geometry) s.mesh.geometry.dispose();
+                    if (s.mesh.material) s.mesh.material.dispose();
+                    splashes.splice(i, 1);
+                } else {
+                    s.scale += frameDeltaSeconds * 20; // Velocidade da expansão da onda
+                    s.mesh.scale.set(s.scale, s.scale, s.scale);
+                    s.mesh.material.opacity = (s.life / s.maxLife) * 0.7; // Desvanece a onda com o tempo
+                }
+            }
+
+            // Atualizar física dos fumos (smokes)
+            for (let i = smokes.length - 1; i >= 0; i--) {
+                const s = smokes[i];
+                s.life -= frameDeltaSeconds;
+                if (s.life <= 0) {
+                    scene.remove(s.mesh);
+                    if (s.mesh.geometry) s.mesh.geometry.dispose();
+                    if (s.mesh.material) s.mesh.material.dispose();
+                    smokes.splice(i, 1);
+                } else {
+                    s.scale += frameDeltaSeconds * 3; // Expansão lenta do fumo
+                    s.mesh.scale.set(s.scale, s.scale, s.scale);
+                    s.mesh.position.y += s.velY * frameDeltaSeconds; // Fumo sobe
+                    s.mesh.material.opacity = (s.life / s.maxLife) * 0.8;
+                }
             }
 
             fighterStateMachine.update(frameDeltaSeconds);
