@@ -3,8 +3,6 @@ import * as THREE from "three";
 export function buildCarrierModel(textureLoader) {
 	const carrierGroup = new THREE.Group();
 
-
-
 	const mainGeometry = new THREE.CylinderGeometry(42, 42, 300, 3);
 	const mainMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
 	const mainBody = new THREE.Mesh(mainGeometry, mainMaterial);
@@ -34,7 +32,14 @@ export function buildCarrierModel(textureLoader) {
 	carrierGroup.add(thirdDeck);
 
 	const towerGeometry = new THREE.BoxGeometry(18, 30, 28);
-	const towerMaterial = new THREE.MeshPhongMaterial({ color: 0x555555 });
+	const towerMetalTexture = textureLoader.load("./textures/metal_texture.png");
+	towerMetalTexture.wrapS = THREE.RepeatWrapping;
+	towerMetalTexture.wrapT = THREE.RepeatWrapping;
+	towerMetalTexture.repeat.set(1, 1);
+	const towerMaterial = new THREE.MeshPhongMaterial({
+		color: 0x555555,
+		map: towerMetalTexture
+	});
 	const tower = new THREE.Mesh(towerGeometry, towerMaterial);
 	tower.position.set(-55, 7.5, -60);
 	carrierGroup.add(tower);
@@ -152,14 +157,25 @@ export function buildCarrierModel(textureLoader) {
 	reverseMotor2.rotation.x = Math.PI / 2;
 	carrierGroup.add(reverseMotor2);
 
-	const room1Geometry = new THREE.BoxGeometry(90, 20, 80);
-	const room1Material = new THREE.MeshPhongMaterial({ color: 0x555555 });
+	const windowTexture = textureLoader.load("./textures/window.jpg");
+	windowTexture.wrapS = THREE.RepeatWrapping;
+	windowTexture.wrapT = THREE.RepeatWrapping;
+	windowTexture.repeat.set(4, 2);
+
+	const room1Geometry = new THREE.BoxGeometry(95, 20, 80);
+	const room1Material = new THREE.MeshPhongMaterial({
+		color: 0x555555 ,
+		map: windowTexture
+	});
 	const room1 = new THREE.Mesh(room1Geometry, room1Material);
 	room1.position.set(0, -30, -80);
 	carrierGroup.add(room1);
 
-	const room2Geometry = new THREE.BoxGeometry(90, 20, 80);
-	const room2Material = new THREE.MeshPhongMaterial({ color: 0x555555 });
+	const room2Geometry = new THREE.BoxGeometry(95, 20, 80);
+	const room2Material = new THREE.MeshPhongMaterial({
+		color: 0x555555 ,
+		map: windowTexture
+	});
 	const room2 = new THREE.Mesh(room2Geometry, room2Material);
 	room2.position.set(0, -30, 80);
 	carrierGroup.add(room2);

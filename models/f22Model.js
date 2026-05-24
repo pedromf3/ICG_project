@@ -320,16 +320,15 @@ export function buildF22Model() {
 		}
 	});
 
-	function setFighterLightState(activeFactor, /* blinkVisible ignored */) {
+	function setFighterLightState(activeFactor) {
 		const af = THREE.MathUtils.clamp(activeFactor, 0, 1);
-		const visibleNow = af > 0.01; // continuous when enabled
+		const visibleNow = af > 0.01;
 
 		rightWingTipTopLight.visible = visibleNow;
 		rightWingTipBottomLight.visible = visibleNow;
 		leftWingTipTopLight.visible = visibleNow;
 		leftWingTipBottomLight.visible = visibleNow;
 
-		// Much lower intensity for steady lights
 		rightWingTipTopLight.intensity = 10 * af;
 		rightWingTipBottomLight.intensity = 10 * af;
 		leftWingTipTopLight.intensity = 10 * af;

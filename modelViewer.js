@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { buildCarrierModel } from "./aircraftCarrierModel.js";
-import { buildF22Model } from "./f22Model.js";
-import { buildUH1YModel } from "./uh-1yModel.js";
+import { buildCarrierModel } from "./models/aircraftCarrierModel.js";
+import { buildF22Model } from "./models/f22Model.js";
+import { buildUH1YModel } from "./models/uh-1yModel.js";
 
 let viewerState = null;
 

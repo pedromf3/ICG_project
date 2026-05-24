@@ -121,7 +121,7 @@ body {
     text-transform: uppercase;
     transition: all 0.3s ease;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(100, 150, 100, 0.1);
-    display: none; /* Ocultado inicialmente até entrar no jogo */
+    display: none; 
 }
 
 #backToMenuBtn:hover {
@@ -132,7 +132,6 @@ body {
     transform: scale(1.05);
 }
 
-/* Estilos do Menu Principal */
 #mainMenu {
     position: fixed;
     top: 0;
@@ -185,7 +184,6 @@ body {
     transform: scale(1.05);
 }
 
-/* Mobile Controls */
 #mobileControls {
     position: fixed;
     bottom: 40px;
@@ -246,7 +244,6 @@ body {
     color: #ffffff;
 }
 
-/* Sub-páginas do menu (Modelos, Controlos, Sobre) */
 .sub-page {
     position: fixed;
     top: 0;
