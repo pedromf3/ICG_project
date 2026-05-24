@@ -157,7 +157,7 @@ export function buildCarrierModel(textureLoader) {
 	reverseMotor2.rotation.x = Math.PI / 2;
 	carrierGroup.add(reverseMotor2);
 
-	const windowTexture = textureLoader.load("./textures/window.jpg");
+	const windowTexture = textureLoader.load("./textures/window_texture.jpg");
 	windowTexture.wrapS = THREE.RepeatWrapping;
 	windowTexture.wrapT = THREE.RepeatWrapping;
 	windowTexture.repeat.set(4, 2);
