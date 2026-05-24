@@ -8,7 +8,7 @@ let viewerState = null;
 
 const MODEL_CONFIG = {
     carrier: {
-        label: "Porta-Aviões",
+        label: "Aircraft Carrier",
         build: (textureLoader) => {
             const { carrierGroup, radarSpinner, setCarrierLightState } = buildCarrierModel(textureLoader);
             carrierGroup.scale.setScalar(0.5);
@@ -24,7 +24,7 @@ const MODEL_CONFIG = {
         controls: ["lights", "radar"]
     },
     fighter: {
-        label: "Caça F-22",
+        label: "F-22 Fighter",
         build: () => {
             const { airplaneGroup, setFighterLightState, setGearDeployFactor } = buildF22Model();
             airplaneGroup.position.set(0, 0, 0);
@@ -41,7 +41,7 @@ const MODEL_CONFIG = {
         controls: ["lights", "gear"]
     },
     helicopter: {
-        label: "Helicóptero UH-1Y",
+        label: "UH-1Y Helicopter",
         build: () => {
             const { helicopterGroup, helicesGroup, backHelicesGroup, setHelicopterLightState } = buildUH1YModel();
             helicopterGroup.scale.setScalar(0.45);

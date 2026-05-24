@@ -16,12 +16,12 @@
         </div>
 
         <div id="modelGalleryPage" class="sub-page">
-            <div class="sub-page-header">Modelos 3D</div>
-            <p class="sub-page-subtitle">Escolha um modelo para visualizar em plano preto com câmara orbital. Pode ligar luzes, hélices e sistemas conforme o veículo.</p>
+            <div class="sub-page-header">3D Models</div>
+            <p class="sub-page-subtitle">Choose a model to view on a black plane with orbital camera. Toggle lights, rotors, and systems depending on the vehicle.</p>
             <div class="model-pick-grid">
-                <button class="model-pick-btn" data-model="carrier">Porta-Aviões</button>
-                <button class="model-pick-btn" data-model="fighter">Caça F-22</button>
-                <button class="model-pick-btn" data-model="helicopter">Helicóptero UH-1Y</button>
+                <button class="model-pick-btn" data-model="carrier">Aircraft Carrier</button>
+                <button class="model-pick-btn" data-model="fighter">F-22 Fighter</button>
+                <button class="model-pick-btn" data-model="helicopter">UH-1Y Helicopter</button>
             </div>
         </div>
 
@@ -32,52 +32,52 @@
         </div>
 
         <div id="controlsPage" class="sub-page">
-            <div class="sub-page-header">Controlos</div>
-            <p class="sub-page-subtitle">Manual de jogabilidade do simulador</p>
+            <div class="sub-page-header">Controls</div>
+            <p class="sub-page-subtitle">Simulator gameplay manual</p>
             <div class="info-panel">
-                <h3>Visão orbital (predefinição)</h3>
+                <h3>Orbital view (default)</h3>
                 <ul>
-                    <li>Arrastar com o rato ou dedo para rodar a câmara à volta do cenário.</li>
-                    <li>Scroll ou pinça para aproximar/afastar.</li>
-                    <li>Menu inferior: teclas <kbd>1</kbd>–<kbd>9</kbd> ou botões para mudar visão, dia/noite e luzes.</li>
+                    <li>Drag with the mouse or finger to rotate the camera around the scene.</li>
+                    <li>Scroll or pinch to zoom in and out.</li>
+                    <li>Bottom menu: keys <kbd>1</kbd>–<kbd>9</kbd> or buttons to change view, day/night, and lights.</li>
                 </ul>
 
-                <h3>Primeira pessoa — caminhar no convés</h3>
+                <h3>First person — walk on deck</h3>
                 <ul>
-                    <li>Ativar no menu: <kbd>2</kbd> ou botão <strong>1st Person</strong>.</li>
-                    <li>Clicar no ecrã para capturar o rato (Pointer Lock).</li>
-                    <li><kbd>W</kbd> / <kbd>S</kbd> — avançar / recuar</li>
-                    <li><kbd>A</kbd> / <kbd>D</kbd> — esquerda / direita</li>
-                    <li>Mover o rato para olhar em redor; o movimento fica limitado ao perímetro do convés.</li>
-                    <li><kbd>Esc</kbd> — voltar à visão orbital.</li>
-                    <li>Em telemóvel: usar o D-pad no canto inferior esquerdo.</li>
+                    <li>Enable in menu: <kbd>2</kbd> or the <strong>1st Person</strong> button.</li>
+                    <li>Click the screen to capture the mouse (Pointer Lock).</li>
+                    <li><kbd>W</kbd> / <kbd>S</kbd> — forward / backward</li>
+                    <li><kbd>A</kbd> / <kbd>D</kbd> — strafe left / right</li>
+                    <li>Move the mouse to look around; movement is limited to the deck perimeter.</li>
+                    <li><kbd>Esc</kbd> — return to orbital view.</li>
+                    <li>On mobile: use the D-pad in the bottom-left corner.</li>
                 </ul>
 
-                <h3>Helicóptero — voar e disparar</h3>
+                <h3>Helicopter — fly and shoot</h3>
                 <ul>
-                    <li>Ativar no menu: <kbd>3</kbd> ou botão <strong>Helicopter</strong>.</li>
-                    <li><kbd>W</kbd> / <kbd>S</kbd> / <kbd>A</kbd> / <kbd>D</kbd> — mover na horizontal (na direção do nariz)</li>
-                    <li><kbd>↑</kbd> / <kbd>↓</kbd> — subir / descer</li>
-                    <li><kbd>←</kbd> / <kbd>→</kbd> — rodar à esquerda / direita</li>
-                    <li><kbd>Shift</kbd> — velocidade reforçada</li>
-                    <li>Botão esquerdo do rato (mantido) — disparar projéteis para onde aponta o cursor</li>
-                    <li><kbd>Esc</kbd> — sair do modo helicóptero.</li>
+                    <li>Enable in menu: <kbd>3</kbd> or the <strong>Helicopter</strong> button.</li>
+                    <li><kbd>W</kbd> / <kbd>S</kbd> / <kbd>A</kbd> / <kbd>D</kbd> — move horizontally (along the nose direction)</li>
+                    <li><kbd>↑</kbd> / <kbd>↓</kbd> — ascend / descend</li>
+                    <li><kbd>←</kbd> / <kbd>→</kbd> — rotate left / right</li>
+                    <li><kbd>Shift</kbd> — boosted speed</li>
+                    <li>Hold left mouse button — fire projectiles toward the cursor</li>
+                    <li><kbd>Esc</kbd> — exit helicopter mode.</li>
                 </ul>
 
-                <h3>Caça — visão de cockpit</h3>
+                <h3>Fighter — cockpit view</h3>
                 <ul>
-                    <li>Ativar no menu: <kbd>4</kbd> ou botão <strong>Fighter</strong>; o caça principal executa descolagem automática.</li>
-                    <li>As rodas retraem durante o voo e estendem-se na aproximação de aterragem.</li>
+                    <li>Enable in menu: <kbd>4</kbd> or the <strong>Fighter</strong> button; the main fighter runs an automatic takeoff sequence.</li>
+                    <li>Landing gear retracts during flight and extends on approach.</li>
                 </ul>
             </div>
         </div>
 
         <div id="aboutPage" class="sub-page">
-            <div class="sub-page-header">Sobre o Projeto</div>
+            <div class="sub-page-header">About the Project</div>
             <div class="info-panel">
-                <p><strong>Aircraft Carrier Simulator</strong> é um projeto da unidade curricular de <em>Introdução à Computação Gráfica (ICG)</em> da Universidade de Aveiro. Recria um porta-aviões em WebGL/Three.js com ciclo dia/noite, oceano animado e modelos 3D procedurais de um caça F-22, helicóptero UH-1Y e convés militar.</p>
-                <p>O jogador pode explorar o cenário em visão orbital, caminhar em primeira pessoa pelo convés, pilotar o helicóptero com disparos e observar o caça em sequência de descolagem. A secção <strong>Modelos</strong> permite inspecionar cada veículo isoladamente, com luzes, hélices e trem de aterragem interativos.</p>
-                <p>Desenvolvido com Three.js, sem motor de jogo externo — foco em iluminação, materiais, colisões simples e interação em tempo real no browser.</p>
+                <p><strong>Aircraft Carrier Simulator</strong> is a project for the <em>Introduction to Computer Graphics (ICG)</em> course at the University of Aveiro. It recreates an aircraft carrier in WebGL/Three.js with a day/night cycle, animated ocean, and procedural 3D models of an F-22 fighter, UH-1Y helicopter, and military deck.</p>
+                <p>Players can explore the scene in orbital view, walk the deck in first person, pilot the helicopter with weapons, and watch the fighter take off automatically. The <strong>Models</strong> section lets you inspect each vehicle on its own with interactive lights, rotors, and landing gear.</p>
+                <p>Built with Three.js and no external game engine — focused on lighting, materials, simple collisions, and real-time interaction in the browser.</p>
             </div>
         </div>
 
@@ -91,7 +91,7 @@
         </div>
 
         <button id="backToMenuBtn">&#9668; Menu</button>
-        <button id="subBackBtn" class="sub-back-btn">&#9668; Voltar</button>
+        <button id="subBackBtn" class="sub-back-btn">&#9668; Back</button>
         <button id="hamburgerBtn">&#9776;</button>
 
         <div id="militaryMenu">
@@ -122,14 +122,14 @@
         </div>
 
         <div id="controlButtons" style="display: none;">
-            <button id="viewToggleButton" type="button" class="hudButton">Visao: Orbital</button>
-            <button id="fighterViewButton" type="button" class="hudButton">Caça: Cockpit</button>
+            <button id="viewToggleButton" type="button" class="hudButton">View: Orbital</button>
+            <button id="fighterViewButton" type="button" class="hudButton">Fighter: Cockpit</button>
             <button id="heliViewButton" type="button" class="hudButton">Heli: Cockpit</button>
-            <button id="setDayNowButton" type="button" class="hudButton">Dia Agora</button>
-            <button id="setNightNowButton" type="button" class="hudButton">Noite Agora</button>
-            <button id="togglePerimeterButton" type="button" class="hudButton">Perimetro: Oculto</button>
-            <button id="toggleFighterLightsButton" type="button" class="hudButton">Caças: Luzes ON</button>
-            <button id="toggleHeliLightsButton" type="button" class="hudButton">Heli: Luzes ON</button>
+            <button id="setDayNowButton" type="button" class="hudButton">Day Now</button>
+            <button id="setNightNowButton" type="button" class="hudButton">Night Now</button>
+            <button id="togglePerimeterButton" type="button" class="hudButton">Perimeter: Hidden</button>
+            <button id="toggleFighterLightsButton" type="button" class="hudButton">Fighters: Lights ON</button>
+            <button id="toggleHeliLightsButton" type="button" class="hudButton">Heli: Lights ON</button>
         </div>
         <div id="WebGL-output"></div>
 
@@ -635,12 +635,12 @@
 
             toggleFighterLightsButton.addEventListener("click", () => {
             fighterLightsEnabled = !fighterLightsEnabled;
-            toggleFighterLightsButton.textContent = fighterLightsEnabled ? "Caças: Luzes ON" : "Caças: Luzes OFF";
+            toggleFighterLightsButton.textContent = fighterLightsEnabled ? "Fighters: Lights ON" : "Fighters: Lights OFF";
             });
 
             toggleHeliLightsButton.addEventListener("click", () => {
             helicopterLightsEnabled = !helicopterLightsEnabled;
-            toggleHeliLightsButton.textContent = helicopterLightsEnabled ? "Heli: Luzes ON" : "Heli: Luzes OFF";
+            toggleHeliLightsButton.textContent = helicopterLightsEnabled ? "Heli: Lights ON" : "Heli: Lights OFF";
             });
 
             // Mobile D-Pad logic
@@ -883,7 +883,7 @@
                 camera.lookAt(firstPersonLookPoint);
                 clampFirstPersonPosition();
 
-                viewToggleButton.textContent = "Visao: Primeira Pessoa";
+                viewToggleButton.textContent = "View: First Person";
                 if (window.innerWidth > 768) {
                     firstPersonControls.lock();
                 }
@@ -898,7 +898,7 @@
                 controls.target.copy(orbitSavedTarget);
             }
 
-            viewToggleButton.textContent = "Visao: Orbital";
+            viewToggleButton.textContent = "View: Orbital";
             controls.update();
             renderer.domElement.style.cursor = "default";
             }
@@ -925,14 +925,14 @@
                 camera.quaternion.copy(tempQuat);
                 
                 if (vehicleType === "fighter") {
-                    viewToggleButton.textContent = "Visao: Orbital";
-                    fighterViewButton.textContent = "Caça: Cockpit (ATIVO)";
+                    viewToggleButton.textContent = "View: Orbital";
+                    fighterViewButton.textContent = "Fighter: Cockpit (ACTIVE)";
                     heliViewButton.textContent = "Heli: Cockpit";
                     renderer.domElement.style.cursor = "default";
                 } else {
-                    viewToggleButton.textContent = "Visao: Orbital";
-                    fighterViewButton.textContent = "Caça: Cockpit";
-                    heliViewButton.textContent = "Heli: Cockpit (ATIVO)";
+                    viewToggleButton.textContent = "View: Orbital";
+                    fighterViewButton.textContent = "Fighter: Cockpit";
+                    heliViewButton.textContent = "Heli: Cockpit (ACTIVE)";
                     renderer.domElement.style.cursor = "crosshair";
                 }
             } else {
@@ -943,8 +943,8 @@
                     camera.position.copy(orbitSavedPosition);
                     controls.target.copy(orbitSavedTarget);
                 }
-                viewToggleButton.textContent = "Visao: Orbital";
-                fighterViewButton.textContent = "Caça: Cockpit";
+                viewToggleButton.textContent = "View: Orbital";
+                fighterViewButton.textContent = "Fighter: Cockpit";
                 heliViewButton.textContent = "Heli: Cockpit";
                 controls.update();
                 renderer.domElement.style.cursor = "default";
@@ -1095,7 +1095,7 @@
 
             togglePerimeterButton.addEventListener("click", () => {
             walkableBoundaryLine.visible = !walkableBoundaryLine.visible;
-            togglePerimeterButton.textContent = walkableBoundaryLine.visible ? "Perimetro: Visivel" : "Perimetro: Oculto";
+            togglePerimeterButton.textContent = walkableBoundaryLine.visible ? "Perimeter: Visible" : "Perimeter: Hidden";
             });
 
             // Military menu functionality
@@ -1649,11 +1649,11 @@
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'viewer-btn' + (uiState.lightsOn ? ' on' : '');
-                    btn.textContent = uiState.lightsOn ? 'Luzes: ON' : 'Luzes: OFF';
+                    btn.textContent = uiState.lightsOn ? 'Lights: ON' : 'Lights: OFF';
                     btn.addEventListener('click', () => {
                         handlers.toggleLights();
                         btn.classList.toggle('on', uiState.lightsOn);
-                        btn.textContent = uiState.lightsOn ? 'Luzes: ON' : 'Luzes: OFF';
+                        btn.textContent = uiState.lightsOn ? 'Lights: ON' : 'Lights: OFF';
                     });
                     modelViewerPanel.appendChild(btn);
                 }
@@ -1661,11 +1661,11 @@
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'viewer-btn' + (uiState.rotorsOn ? ' on' : '');
-                    btn.textContent = uiState.rotorsOn ? 'Hélices: ON' : 'Hélices: OFF';
+                    btn.textContent = uiState.rotorsOn ? 'Rotors: ON' : 'Rotors: OFF';
                     btn.addEventListener('click', () => {
                         handlers.toggleRotors();
                         btn.classList.toggle('on', uiState.rotorsOn);
-                        btn.textContent = uiState.rotorsOn ? 'Hélices: ON' : 'Hélices: OFF';
+                        btn.textContent = uiState.rotorsOn ? 'Rotors: ON' : 'Rotors: OFF';
                     });
                     modelViewerPanel.appendChild(btn);
                 }
@@ -1673,11 +1673,11 @@
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'viewer-btn' + (uiState.gearDeployed ? ' on' : '');
-                    btn.textContent = uiState.gearDeployed ? 'Rodas: Estendidas' : 'Rodas: Retraídas';
+                    btn.textContent = uiState.gearDeployed ? 'Gear: Extended' : 'Gear: Retracted';
                     btn.addEventListener('click', () => {
                         handlers.toggleGear();
                         btn.classList.toggle('on', uiState.gearDeployed);
-                        btn.textContent = uiState.gearDeployed ? 'Rodas: Estendidas' : 'Rodas: Retraídas';
+                        btn.textContent = uiState.gearDeployed ? 'Gear: Extended' : 'Gear: Retracted';
                     });
                     modelViewerPanel.appendChild(btn);
                 }
@@ -1700,7 +1700,7 @@
                 modelViewerPage.classList.add('active');
                 modelViewerPanel.classList.add('active');
                 modelViewerTitle.classList.add('active');
-                modelViewerTitle.textContent = (modelLabels[modelId] || modelId) + ' — arrastar para rodar, scroll para zoom';
+                modelViewerTitle.textContent = (modelLabels[modelId] || modelId) + ' — drag to rotate, scroll to zoom';
                 subBackBtn.classList.add('active');
                 currentSubPage = 'viewer';
 
@@ -1736,7 +1736,7 @@
                 if (window.innerWidth <= 768 && document.documentElement.requestFullscreen) {
                     document.documentElement.requestFullscreen().then(() => {
                         if (screen.orientation && screen.orientation.lock) {
-                            screen.orientation.lock('landscape').catch(e => console.log('Bloqueio de orientação não suportado neste browser', e));
+                            screen.orientation.lock('landscape').catch(e => console.log('Orientation lock not supported in this browser', e));
                         }
                     }).catch(console.error);
                 }
