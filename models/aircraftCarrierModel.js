@@ -160,7 +160,7 @@ export function buildCarrierModel(textureLoader) {
 	const windowTexture = textureLoader.load("./textures/window_texture.jpg");
 	windowTexture.wrapS = THREE.RepeatWrapping;
 	windowTexture.wrapT = THREE.RepeatWrapping;
-	windowTexture.repeat.set(4, 2);
+	windowTexture.repeat.set(7, 3);
 
 	const room1Geometry = new THREE.BoxGeometry(95, 20, 80);
 	const room1Material = new THREE.MeshPhongMaterial({
