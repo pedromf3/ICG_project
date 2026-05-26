@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildCarrierModel } from "./models/aircraftCarrierModel.js";
 import { buildF22Model } from "./models/f22Model.js";
 import { buildUH1YModel } from "./models/uh-1yModel.js";
+import { createThreeStatsHudUpdater } from "./threeStatsHud.js";
 
 let viewerState = null;
 
@@ -91,6 +92,11 @@ export function startModelViewer(container, modelId, onControlsUpdate) {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = false;
     container.appendChild(renderer.domElement);
+    const updateThreeStatsHud = createThreeStatsHudUpdater(
+        renderer,
+        document.getElementById("threejsStatsHud"),
+        () => false
+    );
 
     const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(800, 800),
@@ -193,6 +199,7 @@ export function startModelViewer(container, modelId, onControlsUpdate) {
 
         controls.update();
         renderer.render(scene, camera);
+        updateThreeStatsHud();
     }
 
     viewerState = {

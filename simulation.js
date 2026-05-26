@@ -6,6 +6,7 @@ import { buildCarrierModel } from "./models/aircraftCarrierModel.js";
 import { buildF22Model } from "./models/f22Model.js";
 import { buildUH1YModel } from "./models/uh-1yModel.js";
 import { startModelViewer, stopModelViewer, resizeModelViewer, getModelLabels } from "./modelViewer.js";
+import { createThreeStatsHudUpdater } from "./threeStatsHud.js";
 
 const DAY_DURATION_MS = 3 * 60 * 1000;
 const NIGHT_DURATION_MS = 3 * 60 * 1000;
@@ -452,6 +453,11 @@ function init() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    const updateThreeStatsHud = createThreeStatsHudUpdater(
+        renderer,
+        document.getElementById("threejsStatsHud"),
+        () => militaryMenu.classList.contains("game-active") && parametersOn
+    );
 
     waterNormalsTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
@@ -471,7 +477,7 @@ function init() {
     const heliViewButton = document.getElementById("heliViewButton");
     const setDayNowButton = document.getElementById("setDayNowButton");
     const setNightNowButton = document.getElementById("setNightNowButton");
-    const togglePerimeterButton = document.getElementById("togglePerimeterButton");
+    const toggleParametersButton = document.getElementById("toggleParametersButton");
     const toggleFighterLightsButton = document.getElementById("toggleFighterLightsButton");
     const toggleHeliLightsButton = document.getElementById("toggleHeliLightsButton");
 
@@ -625,6 +631,7 @@ function init() {
     const FIRST_PERSON_MIN_BLOCKING_MASS = 600;
     const FIRST_PERSON_TOWER_COLLISION_PADDING = 2.5;
     const FIRST_PERSON_RADAR_BASE_COLLISION_PADDING = 2;
+    const FIRST_PERSON_SPRINT_MULTIPLIER = 1.5;
     const firstPersonObstacleRects = [
         createFirstPersonObstacleRect({
             centerX: -55,
@@ -657,6 +664,7 @@ function init() {
 
     let hasSavedOrbitPose = false;
     let isFirstPersonMode = false;
+    let firstPersonSlideAxisPreference = null;
     const vehicleViewOffsets = {
         fighter: new THREE.Vector3(0, 12, 8),
         heli: new THREE.Vector3(0, 16, 8)
@@ -698,35 +706,128 @@ function init() {
         return false;
     }
 
-    function resolveFirstPersonObstacleCollision(previousX, previousZ) {
-        if (!isFirstPersonPositionBlocked(camera.position.x, camera.position.z)) {
-            if (!pointInPolygon(camera.position.x, camera.position.z, firstPersonWalkablePolygon)) {
-                camera.position.x = previousX;
-                camera.position.z = previousZ;
+    function isFirstPersonPositionValid(x, z) {
+        return pointInPolygon(x, z, firstPersonWalkablePolygon) && !isFirstPersonPositionBlocked(x, z);
+    }
+
+    function getClosestPolygonEdgeTangent(x, z, polygon) {
+        let closestTangent = null;
+        let bestDistanceSq = Infinity;
+
+        for (let i = 0; i < polygon.length; i++) {
+            const a = polygon[i];
+            const b = polygon[(i + 1) % polygon.length];
+            const ax = a[0];
+            const az = a[1];
+            const bx = b[0];
+            const bz = b[1];
+            const edgeX = bx - ax;
+            const edgeZ = bz - az;
+            const edgeLengthSq = edgeX * edgeX + edgeZ * edgeZ;
+
+            if (edgeLengthSq < 0.000001) {
+                continue;
             }
+
+            const t = THREE.MathUtils.clamp(((x - ax) * edgeX + (z - az) * edgeZ) / edgeLengthSq, 0, 1);
+            const closestX = ax + edgeX * t;
+            const closestZ = az + edgeZ * t;
+            const distanceSq = (x - closestX) * (x - closestX) + (z - closestZ) * (z - closestZ);
+
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                const length = Math.sqrt(edgeLengthSq);
+                closestTangent = {
+                    x: edgeX / length,
+                    z: edgeZ / length
+                };
+            }
+        }
+
+        return closestTangent;
+    }
+
+    function projectMovementOntoTangent(deltaX, deltaZ, tangent) {
+        const dot = deltaX * tangent.x + deltaZ * tangent.z;
+        return {
+            x: tangent.x * dot,
+            z: tangent.z * dot
+        };
+    }
+
+    function resolveFirstPersonObstacleCollision(previousX, previousZ) {
+        const currentX = camera.position.x;
+        const currentZ = camera.position.z;
+
+        if (isFirstPersonPositionValid(currentX, currentZ)) {
+            firstPersonSlideAxisPreference = null;
             return;
         }
 
-        const canKeepNewX = !isFirstPersonPositionBlocked(camera.position.x, previousZ);
-        const canKeepNewZ = !isFirstPersonPositionBlocked(previousX, camera.position.z);
+        const deltaX = currentX - previousX;
+        const deltaZ = currentZ - previousZ;
 
-        if (canKeepNewX) {
-            camera.position.z = previousZ;
+        const boundaryTangent = getClosestPolygonEdgeTangent(currentX, currentZ, firstPersonWalkablePolygon);
+        if (boundaryTangent) {
+            const projectedMove = projectMovementOntoTangent(deltaX, deltaZ, boundaryTangent);
+            const projectedX = previousX + projectedMove.x;
+            const projectedZ = previousZ + projectedMove.z;
+
+            if (isFirstPersonPositionValid(projectedX, projectedZ)) {
+                camera.position.x = projectedX;
+                camera.position.z = projectedZ;
+                firstPersonSlideAxisPreference = null;
+                return;
+            }
+        }
+
+        const candidateKeepX = { x: previousX + deltaX, z: previousZ };
+        const candidateKeepZ = { x: previousX, z: previousZ + deltaZ };
+        const candidateKeepXValid = isFirstPersonPositionValid(candidateKeepX.x, candidateKeepX.z);
+        const candidateKeepZValid = isFirstPersonPositionValid(candidateKeepZ.x, candidateKeepZ.z);
+
+        if (candidateKeepXValid && candidateKeepZValid) {
+            let axisToKeep;
+
+            if (firstPersonSlideAxisPreference === "x" || firstPersonSlideAxisPreference === "z") {
+                axisToKeep = firstPersonSlideAxisPreference;
+            } else if (Math.abs(deltaX) < Math.abs(deltaZ)) {
+                axisToKeep = "x";
+            } else if (Math.abs(deltaZ) < Math.abs(deltaX)) {
+                axisToKeep = "z";
+            } else {
+                axisToKeep = "z";
+            }
+
+            if (axisToKeep === "x") {
+                camera.position.x = candidateKeepX.x;
+                camera.position.z = candidateKeepX.z;
+            } else {
+                camera.position.x = candidateKeepZ.x;
+                camera.position.z = candidateKeepZ.z;
+            }
+
+            firstPersonSlideAxisPreference = axisToKeep;
             return;
         }
 
-        if (canKeepNewZ) {
-            camera.position.x = previousX;
+        if (candidateKeepXValid) {
+            camera.position.x = candidateKeepX.x;
+            camera.position.z = candidateKeepX.z;
+            firstPersonSlideAxisPreference = "x";
+            return;
+        }
+
+        if (candidateKeepZValid) {
+            camera.position.x = candidateKeepZ.x;
+            camera.position.z = candidateKeepZ.z;
+            firstPersonSlideAxisPreference = "z";
             return;
         }
 
         camera.position.x = previousX;
         camera.position.z = previousZ;
-
-        if (!pointInPolygon(camera.position.x, camera.position.z, firstPersonWalkablePolygon)) {
-            camera.position.x = previousX;
-            camera.position.z = previousZ;
-        }
+        firstPersonSlideAxisPreference = null;
     }
 
     function setViewMode(useFirstPerson) {
@@ -894,6 +995,8 @@ function init() {
         const rightInput = (keyState.KeyD ? 1 : 0) - (keyState.KeyA ? 1 : 0);
         const previousX = camera.position.x;
         const previousZ = camera.position.z;
+        const isSprintActive = keyState.ShiftLeft || keyState.ShiftRight;
+        const speedMultiplier = isSprintActive ? FIRST_PERSON_SPRINT_MULTIPLIER : 1.0;
 
         firstPersonMoveVector.set(rightInput, 0, forwardInput);
 
@@ -904,7 +1007,7 @@ function init() {
 
         firstPersonMoveVector.normalize();
 
-        const movementSpeed = FIRST_PERSON_BASE_SPEED * deltaSeconds;
+        const movementSpeed = FIRST_PERSON_BASE_SPEED * speedMultiplier * deltaSeconds;
         firstPersonControls.moveRight(firstPersonMoveVector.x * movementSpeed);
         firstPersonControls.moveForward(firstPersonMoveVector.z * movementSpeed);
 
@@ -947,19 +1050,22 @@ function init() {
         setCycleToProgress(0.75);
     });
 
-    togglePerimeterButton.addEventListener("click", () => {
-        walkableBoundaryLine.visible = !walkableBoundaryLine.visible;
-        togglePerimeterButton.textContent = walkableBoundaryLine.visible
-            ? "Perimeter: Visible"
-            : "Perimeter: Hidden";
-    });
-
     const menuButtons = document.querySelectorAll(".menu-option");
     let currentViewMode = "orbital";
     let currentTimeMode = "day";
     let heliLightsOn = true;
     let fighterLightsOn = true;
-    let perimeterOn = false;
+
+    setParametersEnabled = function (enabled) {
+        parametersOn = enabled;
+        walkableBoundaryLine.visible = parametersOn;
+        toggleParametersButton.textContent = parametersOn ? "Parameters: ON" : "Parameters: OFF";
+    };
+
+    toggleParametersButton.addEventListener("click", () => {
+        setParametersEnabled(!parametersOn);
+        updateMenuStates();
+    });
 
     function updateMenuStates() {
         menuButtons.forEach((btn) => {
@@ -970,7 +1076,7 @@ function init() {
                 action === `view-${currentViewMode}` ||
                 (action === "lights-heli" && heliLightsOn) ||
                 (action === "lights-fighter" && fighterLightsOn) ||
-                (action === "perimeter" && perimeterOn)
+                (action === "parameters" && parametersOn)
             ) {
                 btn.classList.add("active");
             }
@@ -1032,9 +1138,8 @@ function init() {
             } else if (action === "lights-fighter") {
                 fighterLightsEnabled = !fighterLightsEnabled;
                 fighterLightsOn = fighterLightsEnabled;
-            } else if (action === "perimeter") {
-                walkableBoundaryLine.visible = !walkableBoundaryLine.visible;
-                perimeterOn = walkableBoundaryLine.visible;
+            } else if (action === "parameters") {
+                setParametersEnabled(!parametersOn);
             }
 
             updateMenuStates();
@@ -1424,6 +1529,7 @@ function init() {
         radarSpinner.rotation.y += 0.01;
         updateDayNightCycle(getEffectiveCycleElapsedMs());
         renderer.render(scene, camera);
+        updateThreeStatsHud();
     }
 
     updateDayNightCycle(getEffectiveCycleElapsedMs());
@@ -1445,6 +1551,8 @@ const modelViewerTitle = document.getElementById("modelViewerTitle");
 let simInitialized = false;
 let currentSubPage = null;
 let modelViewerActive = false;
+let parametersOn = false;
+let setParametersEnabled = null;
 
 const modelLabels = getModelLabels();
 
@@ -1479,6 +1587,9 @@ function returnToMainMenu() {
         stopModelViewer();
         modelViewerActive = false;
         modelViewerPanel.innerHTML = "";
+    }
+    if (typeof setParametersEnabled === "function") {
+        setParametersEnabled(false);
     }
     hideAllSubPages();
     currentSubPage = null;

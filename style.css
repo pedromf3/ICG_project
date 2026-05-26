@@ -24,6 +24,28 @@ body {
     pointer-events: none;
 }
 
+#threejsStatsHud {
+    display: none;
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 250;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #e7f4ff;
+    font-size: 12px;
+    line-height: 1.45;
+    letter-spacing: 0.2px;
+    border: 1px solid rgba(120, 180, 255, 0.28);
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: none;
+    white-space: pre-line;
+    min-width: 180px;
+    text-align: left;
+}
+
 #controlButtons {
     display: none;
 }
