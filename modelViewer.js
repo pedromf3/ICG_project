@@ -13,13 +13,13 @@ const MODEL_CONFIG = {
         build: (textureLoader) => {
             const { carrierGroup, radarSpinner, setCarrierLightState } = buildCarrierModel(textureLoader);
             carrierGroup.scale.setScalar(0.5);
-            carrierGroup.position.set(0, 15, 0);
+            carrierGroup.position.set(0, 35, 0);
             return {
                 root: carrierGroup,
                 radarSpinner,
                 setLights: (on) => setCarrierLightState(on ? 1 : 0, on, on),
                 cameraDistance: 240,
-                targetY: -6
+                targetY: 10
             };
         },
         controls: ["lights", "radar"]
@@ -28,15 +28,15 @@ const MODEL_CONFIG = {
         label: "F-22 Fighter",
         build: () => {
             const { airplaneGroup, setFighterLightState, setGearDeployFactor } = buildF22Model();
-            airplaneGroup.position.set(0, 0, 0);
+            airplaneGroup.position.set(0, -5, 0);
             setGearDeployFactor(1);
             return {
                 root: airplaneGroup,
                 setLights: (on) => setFighterLightState(on ? 1 : 0, on),
                 setGearDeployFactor,
                 gearDeployed: true,
-                cameraDistance: 95,
-                targetY: 12
+                cameraDistance: 140,
+                targetY: 20
             };
         },
         controls: ["lights", "gear"]
@@ -45,16 +45,16 @@ const MODEL_CONFIG = {
         label: "UH-1Y Helicopter",
         build: () => {
             const { helicopterGroup, helicesGroup, backHelicesGroup, setHelicopterLightState } = buildUH1YModel();
-            helicopterGroup.scale.setScalar(0.45);
-            helicopterGroup.position.set(0, 0, 0);
+            helicopterGroup.scale.setScalar(0.5);
+            helicopterGroup.position.set(0, -5, 0);
             return {
                 root: helicopterGroup,
                 helicesGroup,
                 backHelicesGroup,
                 setLights: (on) => setHelicopterLightState(on ? 1 : 0),
                 rotorsOn: false,
-                cameraDistance: 75,
-                targetY: 18
+                cameraDistance: 85,
+                targetY: 16
             };
         },
         controls: ["lights", "rotors"]
