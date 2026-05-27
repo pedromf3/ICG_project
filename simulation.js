@@ -1083,7 +1083,7 @@ function init() {
         });
 
         const mobileControls = document.getElementById("mobileControls");
-        if (currentViewMode === "firstperson" && window.innerWidth <= 768) {
+        if (isFirstPersonMode && window.innerWidth <= 768) {
             mobileControls.style.display = "flex";
         } else {
             mobileControls.style.display = "none";
@@ -1724,6 +1724,10 @@ backToMenuBtn.addEventListener("click", () => {
     }
     militaryMenu.classList.remove("game-active", "mobile-open");
     hamburgerBtn.classList.remove("game-active");
+    const mobileControls = document.getElementById("mobileControls");
+    if (mobileControls) {
+        mobileControls.style.display = "none";
+    }
     returnToMainMenu();
 });
 

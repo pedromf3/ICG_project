@@ -66,12 +66,14 @@ body {
     padding: 12px 25px;
     font-family: "Courier New", monospace;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(100, 150, 100, 0.1);
-    display: none; /* Ocultado inicialmente até dar Play */
+    display: none;
     align-items: center;
     gap: 25px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     max-width: 95vw;
     overflow-x: auto;
+    transition: opacity 0.2s ease;
+    will-change: opacity;
 }
 
 #militaryMenu.game-active {
@@ -506,9 +508,13 @@ body {
 @media (max-width: 768px) {
     #militaryMenu.game-active {
         display: none !important;
+        opacity: 0;
+        pointer-events: none;
     }
     #militaryMenu.game-active.mobile-open {
         display: flex !important;
+        opacity: 1;
+        pointer-events: auto;
         position: fixed;
         top: 70px;
         right: 20px;
