@@ -72,8 +72,6 @@ body {
     flex-wrap: wrap;
     max-width: 95vw;
     overflow-x: auto;
-    transition: opacity 0.2s ease;
-    will-change: opacity;
 }
 
 #militaryMenu.game-active {
@@ -508,13 +506,9 @@ body {
 @media (max-width: 768px) {
     #militaryMenu.game-active {
         display: none !important;
-        opacity: 0;
-        pointer-events: none;
     }
     #militaryMenu.game-active.mobile-open {
         display: flex !important;
-        opacity: 1;
-        pointer-events: auto;
         position: fixed;
         top: 70px;
         right: 20px;

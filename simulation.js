@@ -853,6 +853,7 @@ function init() {
             if (window.innerWidth > 768) {
                 firstPersonControls.lock();
             }
+                updateMenuStates();
             return;
         }
 
@@ -867,6 +868,7 @@ function init() {
         viewToggleButton.textContent = "View: Orbital";
         controls.update();
         renderer.domElement.style.cursor = "default";
+            updateMenuStates();
     }
 
     function setVehicleViewMode(vehicleType) {
