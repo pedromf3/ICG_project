@@ -3,6 +3,9 @@ import * as THREE from "three";
 export function buildUH1YModel() {
 	const helicopterGroup = new THREE.Group();
 
+	const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+	const darkMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+
 	const shape = new THREE.Shape();
 	shape.moveTo(-6, 6);
 	shape.lineTo(6, 6);
@@ -20,22 +23,19 @@ export function buildUH1YModel() {
 	};
 
 	const bodyGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-	const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
 	const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
 	bodyMesh.position.set(0, 20, -15);
 	bodyMesh.rotation.z = Math.PI / 2;
 	helicopterGroup.add(bodyMesh);
 
-	const bodyGeometry2 = new THREE.CapsuleGeometry(9, 20, 15);
-	const bodyMaterial2 = new THREE.MeshLambertMaterial({ color: 0x666666 });
-	const bodyMesh2 = new THREE.Mesh(bodyGeometry2, bodyMaterial2);
+	const bodyGeometry2 = new THREE.CapsuleGeometry(9, 20, 8);
+	const bodyMesh2 = new THREE.Mesh(bodyGeometry2, bodyMaterial);
 	bodyMesh2.position.set(0, 20, -2);
 	bodyMesh2.rotation.x = Math.PI / 2;
 	helicopterGroup.add(bodyMesh2);
 
 	const cabinGeometry = new THREE.CylinderGeometry(5, 7, 10, 4);
-	const cabinMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
-	const cabinMesh = new THREE.Mesh(cabinGeometry, cabinMaterial);
+	const cabinMesh = new THREE.Mesh(cabinGeometry, bodyMaterial);
 	cabinMesh.position.x = 0;
 	cabinMesh.position.y = 17;
 	cabinMesh.position.z = 20;
@@ -53,8 +53,7 @@ export function buildUH1YModel() {
 	helicopterGroup.add(glassMesh);
 
 	const tailGeometry = new THREE.CylinderGeometry(4, 2, 45, 8);
-	const tailMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
-	const tailMesh = new THREE.Mesh(tailGeometry, tailMaterial);
+	const tailMesh = new THREE.Mesh(tailGeometry, bodyMaterial);
 	tailMesh.position.x = 0;
 	tailMesh.position.y = 22;
 	tailMesh.position.z = -35;
@@ -62,16 +61,14 @@ export function buildUH1YModel() {
 	helicopterGroup.add(tailMesh);
 
 	const topGeometry = new THREE.BoxGeometry(6, 6, 16);
-	const topMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
-	const topMesh = new THREE.Mesh(topGeometry, topMaterial);
+	const topMesh = new THREE.Mesh(topGeometry, bodyMaterial);
 	topMesh.position.x = 0;
 	topMesh.position.y = 31;
 	topMesh.position.z = 0;
 	helicopterGroup.add(topMesh);
 
-	const gearGeometry = new THREE.CylinderGeometry(3, 3, 7, 16);
-	const gearMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-	const gearMesh = new THREE.Mesh(gearGeometry, gearMaterial);
+	const gearGeometry = new THREE.CylinderGeometry(3, 3, 7, 12);
+	const gearMesh = new THREE.Mesh(gearGeometry, darkMaterial);
 	gearMesh.position.x = 0;
 	gearMesh.position.y = 36;
 	gearMesh.position.z = 0;
@@ -104,9 +101,8 @@ export function buildUH1YModel() {
 	helicesGroup.position.set(0, 38, 0);
 	helicopterGroup.add(helicesGroup);
 
-	const backGearGeometry = new THREE.CylinderGeometry(2, 2, 9, 16);
-	const backGearMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
-	const backGearMesh = new THREE.Mesh(backGearGeometry, backGearMaterial);
+	const backGearGeometry = new THREE.CylinderGeometry(2, 2, 9, 12);
+	const backGearMesh = new THREE.Mesh(backGearGeometry, darkMaterial);
 	backGearMesh.position.x = 2;
 	backGearMesh.position.y = 23;
 	backGearMesh.position.z = -58;
@@ -148,44 +144,42 @@ export function buildUH1YModel() {
 
 	const landingGearGroup = new THREE.Group();
 	const trainGeometry = new THREE.CylinderGeometry(1, 0.6, 10, 8);
-	const trainMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
 
-	const trainMesh1 = new THREE.Mesh(trainGeometry, trainMaterial);
+	const trainMesh1 = new THREE.Mesh(trainGeometry, darkMaterial);
 	trainMesh1.position.set(8, 10, -7);
 	trainMesh1.rotation.z = Math.PI / 4;
 	landingGearGroup.add(trainMesh1);
 
-	const trainMesh2 = new THREE.Mesh(trainGeometry, trainMaterial);
+	const trainMesh2 = new THREE.Mesh(trainGeometry, darkMaterial);
 	trainMesh2.position.set(-8, 10, -7);
 	trainMesh2.rotation.z = -Math.PI / 4;
 	landingGearGroup.add(trainMesh2);
 
-	const trainMesh3 = new THREE.Mesh(trainGeometry, trainMaterial);
+	const trainMesh3 = new THREE.Mesh(trainGeometry, darkMaterial);
 	trainMesh3.position.set(8, 10, 8);
 	trainMesh3.rotation.z = Math.PI / 4;
 	landingGearGroup.add(trainMesh3);
 
-	const trainMesh4 = new THREE.Mesh(trainGeometry, trainMaterial);
+	const trainMesh4 = new THREE.Mesh(trainGeometry, darkMaterial);
 	trainMesh4.position.set(-8, 10, 8);
 	trainMesh4.rotation.z = -Math.PI / 4;
 	landingGearGroup.add(trainMesh4);
 
 	const skidGeometry = new THREE.CylinderGeometry(0.8, 0.8, 30, 8);
-	const skidMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
 
-	const skidRight = new THREE.Mesh(skidGeometry, skidMaterial);
+	const skidRight = new THREE.Mesh(skidGeometry, darkMaterial);
 	skidRight.position.set(12, 6.2, 0.5);
 	skidRight.rotation.x = Math.PI / 2;
 	landingGearGroup.add(skidRight);
 
-	const skidLeft = new THREE.Mesh(skidGeometry, skidMaterial);
+	const skidLeft = new THREE.Mesh(skidGeometry, darkMaterial);
 	skidLeft.position.set(-12, 6.2, 0.5);
 	skidLeft.rotation.x = Math.PI / 2;
 	landingGearGroup.add(skidLeft);
 
 	helicopterGroup.add(landingGearGroup);
 
-	const tailNavLightGeometry = new THREE.SphereGeometry(0.55, 16, 16);
+	const tailNavLightGeometry = new THREE.SphereGeometry(0.55, 8, 8);
 	const tailNavLightMaterial = new THREE.MeshStandardMaterial({
 		color: 0xaa2222,
 		emissive: 0xaa2222,
@@ -209,7 +203,7 @@ export function buildUH1YModel() {
 	frontHeadLight.target = frontHeadLightTarget;
 	helicopterGroup.add(frontHeadLight);
 
-	const frontSpotLensGeometry = new THREE.SphereGeometry(1.1, 18, 18);
+	const frontSpotLensGeometry = new THREE.SphereGeometry(1.1, 10, 10);
 	const frontSpotLensMaterial = new THREE.MeshStandardMaterial({
 		color: 0xffffff,
 		emissive: 0xffffff,

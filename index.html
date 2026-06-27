@@ -7,6 +7,22 @@
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
+        <div id="loadingScreen">
+            <div class="loading-content">
+                <div class="loading-radar">
+                    <div class="radar-circle"></div>
+                    <div class="radar-circle radar-circle-2"></div>
+                    <div class="radar-circle radar-circle-3"></div>
+                    <div class="radar-sweep"></div>
+                    <div class="radar-dot"></div>
+                </div>
+                <div class="loading-title">INITIALIZING SYSTEMS</div>
+                <div class="loading-bar-track">
+                    <div class="loading-bar-fill" id="loadingBarFill"></div>
+                </div>
+                <div class="loading-status" id="loadingStatus">Loading modules...</div>
+            </div>
+        </div>
         <div id="mainMenu">
             <div class="main-header">Aircraft Carrier Simulator<br>ICG - Project</div>
             <button class="main-btn" id="btnPlay">Play</button>

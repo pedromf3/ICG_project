@@ -57,7 +57,7 @@ function init() {
     const SUN_LIGHT_DISTANCE = 1700;
     const SUN_BEAM_DISTANCE = 760;
     const SUN_VISUAL_DISTANCE = 4200;
-    const SHADOW_MAP_SIZE = 4096;
+    const SHADOW_MAP_SIZE = 2048;
     const SHADOW_FRUSTUM_HALF_SIZE = 360;
     const WATER_TIME_SCALE = 0.6;
 
@@ -71,7 +71,7 @@ function init() {
     waterNormalsTexture.wrapT = THREE.RepeatWrapping;
     waterNormalsTexture.repeat.set(3.25, 3.25);
 
-    const oceanGeometry = new THREE.PlaneGeometry(8000, 8000, 256, 256);
+    const oceanGeometry = new THREE.PlaneGeometry(8000, 8000, 128, 128);
     const ocean = new Water(oceanGeometry, {
         textureWidth: 1024,
         textureHeight: 1024,
@@ -107,6 +107,12 @@ function init() {
         }
     });
 
+    // Pre-allocated vectors reused by checkDeckCollision to avoid GC per frame
+    const _deckCollCenter = new THREE.Vector3();
+    const _deckCollClosest = new THREE.Vector3();
+    const _deckCollDirection = new THREE.Vector3();
+    const _deckCollNewPos = new THREE.Vector3();
+
     function checkDeckCollision(position) {
         const COLLISION_PADDING = 20;
 
@@ -118,19 +124,19 @@ function init() {
             box.max.addScalar(COLLISION_PADDING);
 
             if (box.containsPoint(position)) {
-                const center = box.getCenter(new THREE.Vector3());
-                const closestPoint = box.clampPoint(position, new THREE.Vector3());
-                const direction = position.clone().sub(closestPoint).normalize();
+                box.getCenter(_deckCollCenter);
+                box.clampPoint(position, _deckCollClosest);
+                _deckCollDirection.copy(position).sub(_deckCollClosest).normalize();
 
-                if (direction.length() < 0.01) {
-                    direction.copy(position).sub(center).normalize();
-                    if (direction.length() < 0.01) {
-                        direction.set(0, 1, 0);
+                if (_deckCollDirection.length() < 0.01) {
+                    _deckCollDirection.copy(position).sub(_deckCollCenter).normalize();
+                    if (_deckCollDirection.length() < 0.01) {
+                        _deckCollDirection.set(0, 1, 0);
                     }
                 }
 
-                const newPos = position.clone().add(direction.multiplyScalar(COLLISION_PADDING + 5));
-                return newPos;
+                _deckCollNewPos.copy(position).addScaledVector(_deckCollDirection, COLLISION_PADDING + 5);
+                return _deckCollNewPos;
             }
         }
         return null;
@@ -298,9 +304,8 @@ function init() {
                         }
                     }
 
-                    const approachDir = new THREE.Vector3()
-                        .subVectors(this.touchdownPoint, this.approachStartPos)
-                        .normalize();
+                    _fsm_approachDir.subVectors(this.touchdownPoint, this.approachStartPos).normalize();
+                    const approachDir = _fsm_approachDir;
                     const targetHeading = Math.atan2(approachDir.x, approachDir.z);
 
                     this.fighter.rotation.set(0, 0, 0);
@@ -435,7 +440,7 @@ function init() {
     scene.add(sunBeamLight);
 
     const sunVisual = new THREE.Mesh(
-        new THREE.SphereGeometry(SUN_VISUAL_RADIUS, 32, 32),
+        new THREE.SphereGeometry(SUN_VISUAL_RADIUS, 24, 16),
         new THREE.MeshBasicMaterial({ color: 0xffd200, fog: false })
     );
     sunVisual.position.copy(sunLight.position);
@@ -451,7 +456,7 @@ function init() {
     renderer.setClearColor(new THREE.Color(0x87ceeb));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     const updateThreeStatsHud = createThreeStatsHudUpdater(
         renderer,
@@ -549,16 +554,15 @@ function init() {
                 touchStartX = touch.pageX;
                 touchStartY = touch.pageY;
 
-                const euler = new THREE.Euler(0, 0, 0, "YXZ");
-                euler.setFromQuaternion(camera.quaternion);
+                _touchEuler.setFromQuaternion(camera.quaternion);
 
-                euler.y -= deltaX * TOUCH_SENSITIVITY;
-                euler.x -= deltaY * TOUCH_SENSITIVITY;
+                _touchEuler.y -= deltaX * TOUCH_SENSITIVITY;
+                _touchEuler.x -= deltaY * TOUCH_SENSITIVITY;
 
                 const PI_2 = Math.PI / 2.0;
-                euler.x = Math.max(-PI_2, Math.min(PI_2, euler.x));
+                _touchEuler.x = Math.max(-PI_2, Math.min(PI_2, _touchEuler.x));
 
-                camera.quaternion.setFromEuler(euler);
+                camera.quaternion.setFromEuler(_touchEuler);
             }
         },
         { passive: false }
@@ -672,6 +676,15 @@ function init() {
     const tempVec3 = new THREE.Vector3();
     const tempQuat = new THREE.Quaternion();
     const cameraRotationOffset = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+    // Pre-allocated reusable objects to avoid per-frame allocations
+    const _vehicleViewWorldPos = new THREE.Vector3();
+    const _heliMoveDir = new THREE.Vector3();
+    const _touchEuler = new THREE.Euler(0, 0, 0, "YXZ");
+    const _fsm_approachDir = new THREE.Vector3();
+    const _projMoveVec = new THREE.Vector3();
+    const _projNextPos = new THREE.Vector3();
+    const _projDir = new THREE.Vector3();
+    const _projRay = new THREE.Raycaster();
 
     function clampFirstPersonPosition() {
         camera.position.y = FIRST_PERSON_EYE_Y;
@@ -884,7 +897,8 @@ function init() {
             tempVec3.copy(offset);
             targetModel.getWorldQuaternion(tempQuat);
             tempVec3.applyQuaternion(tempQuat);
-            camera.position.copy(targetModel.getWorldPosition(new THREE.Vector3())).add(tempVec3);
+            targetModel.getWorldPosition(_vehicleViewWorldPos);
+            camera.position.copy(_vehicleViewWorldPos).add(tempVec3);
 
             tempQuat.multiplyQuaternions(tempQuat, cameraRotationOffset);
             camera.quaternion.copy(tempQuat);
@@ -925,7 +939,8 @@ function init() {
         targetModel.getWorldQuaternion(tempQuat);
         tempVec3.applyQuaternion(tempQuat);
 
-        camera.position.copy(targetModel.getWorldPosition(new THREE.Vector3())).add(tempVec3);
+        targetModel.getWorldPosition(_vehicleViewWorldPos);
+        camera.position.copy(_vehicleViewWorldPos).add(tempVec3);
 
         tempQuat.multiplyQuaternions(tempQuat, cameraRotationOffset);
         camera.quaternion.copy(tempQuat);
@@ -962,15 +977,15 @@ function init() {
         const moveZ = (keyState.KeyW ? 1 : 0) - (keyState.KeyS ? 1 : 0);
         const moveX = (keyState.KeyA ? 1 : 0) - (keyState.KeyD ? 1 : 0);
 
-        const moveDir = new THREE.Vector3(moveX, 0, moveZ);
+        _heliMoveDir.set(moveX, 0, moveZ);
 
-        if (moveDir.lengthSq() > 0) {
-            moveDir.applyQuaternion(mainHelicopter.quaternion);
+        if (_heliMoveDir.lengthSq() > 0) {
+            _heliMoveDir.applyQuaternion(mainHelicopter.quaternion);
 
-            moveDir.y = 0;
-            moveDir.normalize();
+            _heliMoveDir.y = 0;
+            _heliMoveDir.normalize();
 
-            mainHelicopter.position.addScaledVector(moveDir, HELI_SPEED * deltaSeconds);
+            mainHelicopter.position.addScaledVector(_heliMoveDir, HELI_SPEED * deltaSeconds);
         }
 
         const MAP_LIMIT = 1250;
@@ -1266,6 +1281,9 @@ function init() {
         updateDayNightCycle(getEffectiveCycleElapsedMs());
     }
 
+    // Track previous sun intensity to detect meaningful changes and update shadow map
+    let _prevSunIntensity = -1;
+
     function updateDayNightCycle(elapsedMs) {
         const cycleElapsedMs = ((elapsedMs % FULL_CYCLE_MS) + FULL_CYCLE_MS) % FULL_CYCLE_MS;
         const cycleProgress = cycleElapsedMs / FULL_CYCLE_MS;
@@ -1293,7 +1311,14 @@ function init() {
         workingSunVisualColor.lerpColors(sunVisualSunsetColor, sunVisualDayColor, dayMix);
         sunVisual.material.color.copy(workingSunVisualColor);
 
-        sunLight.intensity = THREE.MathUtils.lerp(0.12, 7.5, daylight);
+        const newSunIntensity = THREE.MathUtils.lerp(0.12, 7.5, daylight);
+        sunLight.intensity = newSunIntensity;
+        // Force shadow map refresh when light intensity changes significantly (fixes night/day flicker)
+        if (Math.abs(newSunIntensity - _prevSunIntensity) > 0.05) {
+            sunLight.shadow.needsUpdate = true;
+            _prevSunIntensity = newSunIntensity;
+        }
+
         sunBeamLight.intensity = THREE.MathUtils.lerp(0.0, 0.9, daylight * twilight);
         sunBeamLight.angle = THREE.MathUtils.lerp(Math.PI / 2.45, Math.PI / 2.02, 1 - dayMix);
         ambientLight.intensity = THREE.MathUtils.lerp(0.08, 0.55, twilight);
@@ -1383,13 +1408,16 @@ function init() {
 
         for (let i = projectiles.length - 1; i >= 0; i--) {
             const p = projectiles[i];
-            const moveVec = p.velocity.clone().multiplyScalar(frameDeltaSeconds);
-            const nextPos = p.mesh.position.clone().add(moveVec);
+            // Reuse pre-allocated vectors instead of cloning per frame
+            _projMoveVec.copy(p.velocity).multiplyScalar(frameDeltaSeconds);
+            _projNextPos.copy(p.mesh.position).add(_projMoveVec);
 
-            const dist = moveVec.length();
-            const dir = moveVec.clone().normalize();
-            const projRay = new THREE.Raycaster(p.mesh.position, dir, 0, dist);
-            const carrierHits = projRay.intersectObject(carrierGroup, true);
+            const dist = _projMoveVec.length();
+            _projDir.copy(_projMoveVec).normalize();
+            _projRay.set(p.mesh.position, _projDir);
+            _projRay.near = 0;
+            _projRay.far = dist;
+            const carrierHits = _projRay.intersectObject(carrierGroup, true);
 
             let hitPoint = null;
             for (let j = 0; j < carrierHits.length; j++) {
@@ -1435,10 +1463,10 @@ function init() {
                 continue;
             }
 
-            if (p.mesh.position.y > WATER_LEVEL_Y && nextPos.y <= WATER_LEVEL_Y) {
-                const hitFactor = (WATER_LEVEL_Y - p.mesh.position.y) / moveVec.y;
-                const hitX = p.mesh.position.x + moveVec.x * hitFactor;
-                const hitZ = p.mesh.position.z + moveVec.z * hitFactor;
+            if (p.mesh.position.y > WATER_LEVEL_Y && _projNextPos.y <= WATER_LEVEL_Y) {
+                const hitFactor = (WATER_LEVEL_Y - p.mesh.position.y) / _projMoveVec.y;
+                const hitX = p.mesh.position.x + _projMoveVec.x * hitFactor;
+                const hitZ = p.mesh.position.z + _projMoveVec.z * hitFactor;
 
                 const ringGeom = new THREE.RingGeometry(0.1, 1.5, 32);
                 const splashMat = new THREE.MeshBasicMaterial({
@@ -1461,8 +1489,8 @@ function init() {
                 continue;
             }
 
-            p.mesh.position.copy(nextPos);
-            p.distanceTraveled += moveVec.length();
+            p.mesh.position.copy(_projNextPos);
+            p.distanceTraveled += dist;
 
             if (p.distanceTraveled > 4000) {
                 scene.remove(p.mesh);
@@ -1707,12 +1735,46 @@ document.getElementById("btnPlay").addEventListener("click", () => {
     }
 
     mainMenu.style.display = "none";
-    militaryMenu.classList.add("game-active");
-    hamburgerBtn.classList.add("game-active");
-    backToMenuBtn.style.display = "block";
+
     if (!simInitialized) {
-        init();
-        simInitialized = true;
+        const loadingScreen = document.getElementById("loadingScreen");
+        const loadingBarFill = document.getElementById("loadingBarFill");
+        const loadingStatus = document.getElementById("loadingStatus");
+
+        loadingScreen.classList.add("active");
+        loadingBarFill.style.width = "15%";
+        loadingStatus.textContent = "Preparing renderer...";
+
+        setTimeout(() => {
+            loadingBarFill.style.width = "40%";
+            loadingStatus.textContent = "Building models...";
+
+            setTimeout(() => {
+                loadingBarFill.style.width = "70%";
+                loadingStatus.textContent = "Configuring scene...";
+
+                init();
+                simInitialized = true;
+
+                loadingBarFill.style.width = "100%";
+                loadingStatus.textContent = "Systems online";
+
+                setTimeout(() => {
+                    loadingScreen.classList.add("fade-out");
+                    militaryMenu.classList.add("game-active");
+                    hamburgerBtn.classList.add("game-active");
+                    backToMenuBtn.style.display = "block";
+
+                    setTimeout(() => {
+                        loadingScreen.classList.remove("active", "fade-out");
+                    }, 600);
+                }, 400);
+            }, 50);
+        }, 50);
+    } else {
+        militaryMenu.classList.add("game-active");
+        hamburgerBtn.classList.add("game-active");
+        backToMenuBtn.style.display = "block";
     }
 });
 

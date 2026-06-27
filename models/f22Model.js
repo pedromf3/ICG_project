@@ -3,9 +3,14 @@ import * as THREE from "three";
 export function buildF22Model() {
 	const airplaneGroup = new THREE.Group();
 
+	const darkMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+	const asaMaterial = new THREE.MeshStandardMaterial({
+		color: 0x333333,
+		flatShading: true
+	});
+
 	const boxGeometry = new THREE.CylinderGeometry(6, 3, 48, 4);
-	const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-	const box = new THREE.Mesh(boxGeometry, boxMaterial);
+	const box = new THREE.Mesh(boxGeometry, darkMaterial);
 	box.position.x = 0;
 	box.position.y = 13;
 	box.position.z = 0;
@@ -14,8 +19,7 @@ export function buildF22Model() {
 	airplaneGroup.add(box);
 
 	const cabinetGeometry = new THREE.ConeGeometry(7, 28, 5);
-	const cabinetMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-	const cabinet = new THREE.Mesh(cabinetGeometry, cabinetMaterial);
+	const cabinet = new THREE.Mesh(cabinetGeometry, darkMaterial);
 	cabinet.position.x = 0;
 	cabinet.position.y = 13;
 	cabinet.position.z = 39;
@@ -23,8 +27,7 @@ export function buildF22Model() {
 	airplaneGroup.add(cabinet);
 
 	const invertcabinetGeometry = new THREE.ConeGeometry(7, 22, 5);
-	const invertcabinetMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-	const invertcabinet = new THREE.Mesh(invertcabinetGeometry, invertcabinetMaterial);
+	const invertcabinet = new THREE.Mesh(invertcabinetGeometry, darkMaterial);
 	invertcabinet.position.x = 0;
 	invertcabinet.position.y = 13;
 	invertcabinet.position.z = 14;
@@ -33,17 +36,11 @@ export function buildF22Model() {
 	airplaneGroup.add(invertcabinet);
 
 	const motorGeometry = new THREE.BoxGeometry(18, 5, 44);
-	const motorMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-	const motor = new THREE.Mesh(motorGeometry, motorMaterial);
+	const motor = new THREE.Mesh(motorGeometry, darkMaterial);
 	motor.position.x = 0;
 	motor.position.y = 12.4;
 	motor.position.z = -2;
 	airplaneGroup.add(motor);
-
-	const asaMaterial = new THREE.MeshStandardMaterial({
-		color: 0x333333,
-		flatShading: true
-	});
 
 	function criarTrapezio(p1, p2, p3, p4) {
 		const thickness = 0.45;
@@ -115,7 +112,7 @@ export function buildF22Model() {
 	asaEsquerda.position.set(0, 15, 0);
 	airplaneGroup.add(asaEsquerda);
 
-	const wingTipLightGeometry = new THREE.SphereGeometry(0.55, 16, 16);
+	const wingTipLightGeometry = new THREE.SphereGeometry(0.55, 8, 8);
 	const rightWingTipMaterial = new THREE.MeshStandardMaterial({
 		color: 0xaa4444,
 		emissive: 0xaa4444,
@@ -231,17 +228,15 @@ export function buildF22Model() {
 	horizontalStabilizerDireita.position.set(-2, 15, 15);
 	airplaneGroup.add(horizontalStabilizerDireita);
 
-	const turbinaEsquerdaGeo = new THREE.CylinderGeometry(2, 3, 16, 32);
-	const turbinaMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-	const turbina = new THREE.Mesh(turbinaEsquerdaGeo, turbinaMaterial);
+	const turbinaGeo = new THREE.CylinderGeometry(2, 3, 16, 12);
+	const turbina = new THREE.Mesh(turbinaGeo, darkMaterial);
 	turbina.position.x = 4;
 	turbina.position.y = 12;
 	turbina.position.z = -20;
 	turbina.rotation.x = Math.PI / 2;
 	airplaneGroup.add(turbina);
 
-	const turbinaDireitaGeo = new THREE.CylinderGeometry(2, 3, 16, 32);
-	const turbinaDireita = new THREE.Mesh(turbinaDireitaGeo, turbinaMaterial);
+	const turbinaDireita = new THREE.Mesh(turbinaGeo, darkMaterial);
 	turbinaDireita.position.x = -4;
 	turbinaDireita.position.y = 12;
 	turbinaDireita.position.z = -20;
@@ -257,9 +252,9 @@ export function buildF22Model() {
 	cockpit.rotation.x = Math.PI / 2 + Math.PI / 10;
 	airplaneGroup.add(cockpit);
 
-	const rodaPousoGeo = new THREE.CylinderGeometry(2, 2, 2, 32);
+	const rodaPousoGeo = new THREE.CylinderGeometry(2, 2, 2, 16);
 	const rodaPousoMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
-	const eixoRodaGeo = new THREE.CylinderGeometry(0.5, 0.5, 8, 32);
+	const eixoRodaGeo = new THREE.CylinderGeometry(0.5, 0.5, 8, 12);
 	const eixoRodaMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
 	const frontGearPivot = new THREE.Group();
