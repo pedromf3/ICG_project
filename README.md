@@ -8,6 +8,3 @@
 [![YouTube Video](https://img.shields.io/badge/YouTube-Watch_Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/mZAMIIKcj74)
 
 </div>
-
-> [!NOTE]
-> The simulator is available on some mobile browsers (such as Bing), but it is **not yet compatible with Google Chrome on mobile devices**.
