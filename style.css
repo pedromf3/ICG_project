@@ -617,6 +617,15 @@ body {
     margin: 0 2px;
 }
 
+.author-link {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.author-link:hover {
+    text-decoration: underline;
+}
+
 .sub-back-btn {
     position: fixed;
     top: 20px;
