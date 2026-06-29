@@ -1730,7 +1730,7 @@ document.getElementById("btnPlay").addEventListener("click", () => {
                 .then(() => {
                     if (screen.orientation && screen.orientation.lock) {
                         screen.orientation
-                            .lock("landscape")
+                            .lock("portrait")
                             .catch(() => {});
                     }
                 })
