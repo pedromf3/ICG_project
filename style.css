@@ -3,6 +3,10 @@ body {
     overflow: hidden;
     background: #000000;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* ── Loading Screen ── */
@@ -145,6 +149,11 @@ body {
 #WebGL-output {
     width: 100vw;
     height: 100vh;
+    touch-action: none;
+}
+
+#WebGL-output canvas {
+    touch-action: none;
 }
 
 #overlay {
@@ -640,7 +649,7 @@ body {
     display: block;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
     #militaryMenu.game-active {
         display: none !important;
     }

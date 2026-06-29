@@ -8,6 +8,8 @@ import { buildUH1YModel } from "./models/uh-1yModel.js";
 import { startModelViewer, stopModelViewer, resizeModelViewer, getModelLabels } from "./modelViewer.js";
 import { createThreeStatsHudUpdater } from "./threeStatsHud.js";
 
+const isTouchDevice = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
 const DAY_DURATION_MS = 3 * 60 * 1000;
 const NIGHT_DURATION_MS = 3 * 60 * 1000;
 const FULL_CYCLE_MS = DAY_DURATION_MS + NIGHT_DURATION_MS;
@@ -863,7 +865,7 @@ function init() {
             clampFirstPersonPosition();
 
             viewToggleButton.textContent = "View: First Person";
-            if (window.innerWidth > 768) {
+            if (!isTouchDevice) {
                 firstPersonControls.lock();
             }
                 updateMenuStates();
@@ -1100,7 +1102,7 @@ function init() {
         });
 
         const mobileControls = document.getElementById("mobileControls");
-        if (isFirstPersonMode && window.innerWidth <= 768) {
+        if (isFirstPersonMode && isTouchDevice) {
             mobileControls.style.display = "flex";
         } else {
             mobileControls.style.display = "none";
@@ -1166,7 +1168,7 @@ function init() {
     updateMenuStates();
 
     renderer.domElement.addEventListener("click", () => {
-        if (isFirstPersonMode && !firstPersonControls.isLocked && window.innerWidth > 768) {
+        if (isFirstPersonMode && !firstPersonControls.isLocked && !isTouchDevice) {
             firstPersonControls.lock();
         }
     });
@@ -1721,17 +1723,21 @@ window.addEventListener("resize", () => {
 });
 
 document.getElementById("btnPlay").addEventListener("click", () => {
-    if (window.innerWidth <= 768 && document.documentElement.requestFullscreen) {
-        document.documentElement
-            .requestFullscreen()
-            .then(() => {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation
-                        .lock("landscape")
-                        .catch((e) => console.log("Orientation lock not supported in this browser", e));
-                }
-            })
-            .catch(console.error);
+    if (window.innerWidth <= 768) {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement
+                .requestFullscreen()
+                .then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation
+                            .lock("landscape")
+                            .catch(() => {});
+                    }
+                })
+                .catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+        }
     }
 
     mainMenu.style.display = "none";
